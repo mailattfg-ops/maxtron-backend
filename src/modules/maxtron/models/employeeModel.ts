@@ -11,8 +11,18 @@ export const EmployeeModel = {
             .select(`
                 *,
                 employee_categories(category_name),
-                departments(department_name),
-                user_types(name)
+                companies(company_name),
+                user_types(name),
+                addresses(*),
+                employee_qualifications(*),
+                employee_experiences(*),
+                employee_certificates(*),
+                employee_licenses(*),
+                employee_passports(*),
+                employee_loans(*),
+                employee_targets(*),
+                employee_suspenses(*),
+                employee_incentive_slabs(*)
             `)
             .order('created_at', { ascending: false });
 
@@ -27,8 +37,9 @@ export const EmployeeModel = {
             .select(`
                 *,
                 employee_categories(category_name),
-                departments(department_name),
+                companies(company_name),
                 user_types(name),
+                addresses(*),
                 employee_qualifications(*),
                 employee_experiences(*),
                 employee_certificates(*),
@@ -48,7 +59,7 @@ export const EmployeeModel = {
 
     // Create a new employee
     create: async (employeeData: any): Promise<User> => {
-        const { employee_qualifications, employee_experiences, employee_certificates, employee_licenses, employee_passports, employee_loans, employee_targets, employee_suspenses, employee_incentive_slabs, ...baseUserData } = employeeData;
+        const { employee_qualifications, employee_experiences, employee_certificates, employee_licenses, employee_passports, employee_loans, employee_targets, employee_suspenses, employee_incentive_slabs, addresses, ...baseUserData } = employeeData;
 
         let dataToInsert = { ...baseUserData };
         if (dataToInsert.password) {
@@ -82,13 +93,18 @@ export const EmployeeModel = {
             await insertRelation('employee_targets', employee_targets);
             await insertRelation('employee_suspenses', employee_suspenses);
             await insertRelation('employee_incentive_slabs', employee_incentive_slabs);
+
+            if (addresses && addresses.length > 0) {
+                const mappedAddresses = addresses.map((a: any) => ({ ...a, user_id: user.id }));
+                await supabase.from('addresses').insert(mappedAddresses);
+            }
         }
 
         return user;
     },
     // Update existing employee
     update: async (id: string, updates: any): Promise<User | null> => {
-        const { employee_qualifications, employee_experiences, employee_certificates, employee_licenses, employee_passports, employee_loans, employee_targets, employee_suspenses, employee_incentive_slabs, ...baseUserData } = updates;
+        const { employee_qualifications, employee_experiences, employee_certificates, employee_licenses, employee_passports, employee_loans, employee_targets, employee_suspenses, employee_incentive_slabs, addresses, ...baseUserData } = updates;
 
         let dataToUpdate = { ...baseUserData };
         if (dataToUpdate.password) {
@@ -128,6 +144,14 @@ export const EmployeeModel = {
             await recreateRelation('employee_targets', employee_targets);
             await recreateRelation('employee_suspenses', employee_suspenses);
             await recreateRelation('employee_incentive_slabs', employee_incentive_slabs);
+
+            if (addresses) {
+                await supabase.from('addresses').delete().eq('user_id', user.id);
+                if (addresses.length > 0) {
+                    const mappedAddresses = addresses.map((a: any) => ({ ...a, user_id: user.id }));
+                    await supabase.from('addresses').insert(mappedAddresses);
+                }
+            }
         }
 
         return user || null;

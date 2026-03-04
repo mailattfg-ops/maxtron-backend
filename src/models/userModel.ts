@@ -12,8 +12,7 @@ export interface User {
     guarantor_name?: string | null;
     is_married?: boolean;
     category_id?: string | null;
-    department_ids?: string[];
-    user_departments?: any[];
+    company_id?: string | null;
     created_at?: string;
 }
 

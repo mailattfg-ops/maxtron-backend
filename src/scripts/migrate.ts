@@ -70,25 +70,35 @@ async function runMigrations() {
     `);
 
     await client.query(`
-      CREATE TABLE IF NOT EXISTS departments(
+      CREATE TABLE IF NOT EXISTS companies(
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      department_name VARCHAR(100) UNIQUE NOT NULL
+      company_code VARCHAR(50) UNIQUE NOT NULL,
+      company_name VARCHAR(255) UNIQUE NOT NULL,
+      gst_no VARCHAR(100),
+      license_no VARCHAR(100),
+      license_details TEXT,
+      license_renewal_date DATE,
+      pcb_authorization_no VARCHAR(100),
+      pcb_details TEXT,
+      pcb_renewal_date DATE,
+      no_of_employees INTEGER DEFAULT 0,
+      email VARCHAR(255),
+      phone VARCHAR(50),
+      website VARCHAR(255),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `);
 
     await client.query(`
-      INSERT INTO departments(id, department_name) VALUES
-      (gen_random_uuid(), 'MAXTRON'),
-      (gen_random_uuid(), 'KEIL'),
-      (gen_random_uuid(), 'GJM'),
-      (gen_random_uuid(), 'ARYAJA'),
-      (gen_random_uuid(), 'SMS')
-      ON CONFLICT(department_name) DO NOTHING;
+      INSERT INTO companies(id, company_code, company_name) VALUES
+      (gen_random_uuid(), 'MAXTRON-CODE', 'MAXTRON'),
+      (gen_random_uuid(), 'KEIL-CODE', 'KEIL')
+      ON CONFLICT(company_name) DO NOTHING;
     `);
 
     console.log('4️⃣ Clean up dependencies to apply new structural updates...');
     await client.query(`
-      DROP TABLE IF EXISTS users, companies CASCADE;
+      DROP TABLE IF EXISTS users CASCADE;
       DROP TABLE IF EXISTS user_departments, addresses, employee_qualifications, employee_experiences, employee_certificates, employee_licenses, employee_passports, employee_loans, employee_suspenses, employee_targets, employee_incentive_slabs CASCADE;
     `);
 
@@ -108,7 +118,7 @@ async function runMigrations() {
           is_married BOOLEAN DEFAULT FALSE,
           family_details TEXT,
           category_id UUID,
-          department_id UUID,
+          company_id UUID,
           has_license BOOLEAN DEFAULT FALSE,
           has_passport BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -124,9 +134,9 @@ async function runMigrations() {
             REFERENCES employee_categories(id)
             ON DELETE SET NULL,
 
-      CONSTRAINT fk_department 
-            FOREIGN KEY(department_id) 
-            REFERENCES departments(id)
+      CONSTRAINT fk_company 
+            FOREIGN KEY(company_id) 
+            REFERENCES companies(id)
             ON DELETE SET NULL
       );
     `);
@@ -149,25 +159,7 @@ async function runMigrations() {
     console.log('7️⃣ Creating Employee HR Module and Company dependent tables...');
 
     // Companies Table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS companies(
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      company_code VARCHAR(50) UNIQUE NOT NULL,
-      company_name VARCHAR(255) UNIQUE NOT NULL,
-      gst_no VARCHAR(100),
-      license_no VARCHAR(100),
-      license_details TEXT,
-      license_renewal_date DATE,
-      pcb_authorization_no VARCHAR(100),
-      pcb_details TEXT,
-      pcb_renewal_date DATE,
-      no_of_employees INTEGER DEFAULT 0,
-      email VARCHAR(255),
-      phone VARCHAR(50),
-      website VARCHAR(255),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    `);
+
 
     // Dependencies (Addresses can belong to users or companies)
     await client.query(`
