@@ -1,0 +1,90 @@
+﻿[dotenv@17.3.1] injecting env (5) from .env -- tip: ΓÜÖ∩╕Å  enable debug logging with { debug: true }
+[
+  {
+    "table_name": "addresses"
+  },
+  {
+    "table_name": "attendance"
+  },
+  {
+    "table_name": "companies"
+  },
+  {
+    "table_name": "customers"
+  },
+  {
+    "table_name": "departments"
+  },
+  {
+    "table_name": "employee_categories"
+  },
+  {
+    "table_name": "employee_certificates"
+  },
+  {
+    "table_name": "employee_experiences"
+  },
+  {
+    "table_name": "employee_incentive_slabs"
+  },
+  {
+    "table_name": "employee_licenses"
+  },
+  {
+    "table_name": "employee_loans"
+  },
+  {
+    "table_name": "employee_passports"
+  },
+  {
+    "table_name": "employee_qualifications"
+  },
+  {
+    "table_name": "employee_suspenses"
+  },
+  {
+    "table_name": "employee_targets"
+  },
+  {
+    "table_name": "inventory"
+  },
+  {
+    "table_name": "marketing_visits"
+  },
+  {
+    "table_name": "material_consumptions"
+  },
+  {
+    "table_name": "purchase_entries"
+  },
+  {
+    "table_name": "purchase_entry_items"
+  },
+  {
+    "table_name": "purchase_returns"
+  },
+  {
+    "table_name": "raw_materials"
+  },
+  {
+    "table_name": "rm_order_items"
+  },
+  {
+    "table_name": "rm_orders"
+  },
+  {
+    "table_name": "supplier_master"
+  },
+  {
+    "table_name": "user_types"
+  },
+  {
+    "table_name": "users"
+  },
+  {
+    "table_name": "vehicles"
+  },
+  {
+    "table_name": "vendor_registry"
+  }
+]

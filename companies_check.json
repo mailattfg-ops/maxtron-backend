@@ -1,0 +1,11 @@
+﻿[dotenv@17.3.1] injecting env (5) from .env -- tip: ≡ƒöÉ prevent committing .env to code: https://dotenvx.com/precommit
+[
+  {
+    "id": "e4d6d3b3-3534-4452-91d6-d6080a8e1882",
+    "company_name": "KEIL"
+  },
+  {
+    "id": "88a8faa1-4d14-4986-8144-592651ee9dff",
+    "company_name": "MAXTRON"
+  }
+]

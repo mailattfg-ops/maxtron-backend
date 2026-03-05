@@ -31,7 +31,32 @@ export const createAttendance = async (req: Request, res: Response): Promise<voi
     }
 };
 
+export const createBulkAttendance = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { attendanceList } = req.body;
+        const result = await AttendanceModel.createBulk(attendanceList);
+        res.status(201).json({ success: true, count: result.length, data: result });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: 'Failed to mark bulk attendance', error: error.message });
+    }
+};
+
+export const getAttendanceByRange = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { start_date, end_date, company_id } = req.query;
+        if (!start_date || !end_date) {
+            res.status(400).json({ success: false, message: 'Start and end dates are required' });
+            return;
+        }
+        const attendance = await AttendanceModel.getByDateRange(start_date as string, end_date as string, company_id as string);
+        res.status(200).json({ success: true, count: attendance.length, data: attendance });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: 'Failed to fetch attendance summary', error: error.message });
+    }
+};
+
 export const updateAttendance = async (req: Request, res: Response): Promise<void> => {
+
     try {
         const { id } = req.params;
         const updatedEntry = await AttendanceModel.update(id as string, req.body);

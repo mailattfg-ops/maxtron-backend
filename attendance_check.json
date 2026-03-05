@@ -1,0 +1,29 @@
+﻿[dotenv@17.3.1] injecting env (5) from .env -- tip: ΓÜÖ∩╕Å  suppress all logs with { quiet: true }
+TOTAL ATTENDANCE RECORDS: 2
+[
+  {
+    "id": "b3157c7a-ffa1-49b9-bf17-fe3398c5e1b8",
+    "employee_id": "946aadd9-5028-492f-90e0-759f06c6c275",
+    "company_id": "88a8faa1-4d14-4986-8144-592651ee9dff",
+    "date": "2026-03-12T18:30:00.000Z",
+    "shift": "DAY",
+    "clock_in": "07:40:00",
+    "clock_out": "09:41:00",
+    "status": "ABSENT",
+    "remarks": "sdasdas",
+    "created_at": "2026-03-05T05:37:49.122Z"
+  },
+  {
+    "id": "b92dcce3-5869-4877-ad07-5935660f7d1c",
+    "employee_id": "946aadd9-5028-492f-90e0-759f06c6c275",
+    "company_id": "88a8faa1-4d14-4986-8144-592651ee9dff",
+    "date": "2026-02-28T18:30:00.000Z",
+    "shift": "DAY",
+    "clock_in": "19:44:00",
+    "clock_out": "19:44:00",
+    "status": "ABSENT",
+    "remarks": "",
+    "created_at": "2026-03-05T05:44:28.946Z"
+  }
+]
+TABLE RLS INFO: { tablename: 'attendance', rowsecurity: false }

@@ -1,0 +1,64 @@
+﻿[dotenv@17.3.1
+] injecting env (5) from .env -- tip: ≡ƒñû agentic secret storage: https: //dotenvx.com/as2
+[
+  {
+    "table_name": "supplier_master",
+    "column_name": "billing_address_id"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "company_id"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "created_at"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "credit_limit"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "credit_period"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "delivery_mode"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "delivery_period"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "gst_no"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "id"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "opening_balance"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "product_supplied"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "supplier_address_id"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "supplier_code"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "supplier_name"
+  },
+  {
+    "table_name": "supplier_master",
+    "column_name": "updated_at"
+  }
+]

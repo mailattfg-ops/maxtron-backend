@@ -186,17 +186,13 @@ async function runMigrations() {
       user_id UUID REFERENCES users(id) ON DELETE CASCADE,
       company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
       customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
-      address_type VARCHAR(50) NOT NULL,
+      address_type VARCHAR(50),
       street VARCHAR(255),
       city VARCHAR(100),
       state VARCHAR(100),
       zip_code VARCHAR(20),
       country VARCHAR(100) DEFAULT 'India',
-      CHECK(
-        (user_id IS NOT NULL AND company_id IS NULL AND customer_id IS NULL) OR
-        (user_id IS NULL AND company_id IS NOT NULL AND customer_id IS NULL) OR
-        (user_id IS NULL AND company_id IS NULL AND customer_id IS NOT NULL)
-      )
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
@@ -320,6 +316,31 @@ async function runMigrations() {
     );
     `);
 
+    console.log('7.5️⃣ Creating Supplier Master table...');
+    await client.query('DROP TABLE IF EXISTS suppliers CASCADE;');
+    await client.query('DROP TABLE IF EXISTS supplier_master CASCADE;');
+    await client.query(`
+      CREATE TABLE supplier_master (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+        supplier_code VARCHAR(50) UNIQUE NOT NULL,
+        supplier_name VARCHAR(255) NOT NULL,
+        supplier_address_id UUID REFERENCES addresses(id) ON DELETE SET NULL,
+        billing_address_id UUID REFERENCES addresses(id) ON DELETE SET NULL,
+        gst_no VARCHAR(100),
+        credit_period INTEGER DEFAULT 0,
+        credit_limit NUMERIC(15, 2) DEFAULT 0,
+        product_supplied TEXT,
+        delivery_period VARCHAR(100),
+        delivery_mode VARCHAR(100),
+        opening_balance NUMERIC(15, 2) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await client.query('ALTER TABLE supplier_master ENABLE ROW LEVEL SECURITY;');
+    await client.query('CREATE POLICY "master_supplier_access" ON supplier_master FOR ALL USING (true) WITH CHECK (true);');
+
     console.log('8️⃣ Inserting default admin user...');
     await client.query(`
       INSERT INTO users(type, name, username, password, address, employee_code)
@@ -327,6 +348,10 @@ async function runMigrations() {
       FROM user_types WHERE name = 'admin'
       ON CONFLICT(username) DO NOTHING;
     `);
+
+    console.log('9️⃣ Refreshing PostgREST schema cache...');
+    await client.query("NOTIFY pgrst, 'reload schema';");
+
 
     await client.query('COMMIT');
     console.log('✅ Migration successful! All tables and unified users structure correctly created.');

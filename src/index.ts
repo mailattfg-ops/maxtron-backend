@@ -26,5 +26,5 @@ app.get('/api/health', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Backend running on port ${port}`);
+    console.log(`Backend running on port ${port} - RESTART VERIFIED`);
 });
