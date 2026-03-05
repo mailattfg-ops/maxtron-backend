@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import maxtronRoutes from './modules/maxtron/routes';
 import keilRoutes from './modules/keil/routes';
+import { protect } from './middleware/authMiddleware';
 
 dotenv.config();
 
@@ -17,8 +18,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes); // Auth is Global
 
 // Completely Separate Module Sections
-app.use('/api/maxtron', maxtronRoutes);
-app.use('/api/keil', keilRoutes);
+app.use('/api/maxtron', protect, maxtronRoutes);
+app.use('/api/keil', protect, keilRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'ERP Backend is healthy' });
