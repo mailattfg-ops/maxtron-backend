@@ -23,6 +23,7 @@ import productRoutes from './productRoutes';
 import financeRoutes from './financeRoutes';
 import { getDepartments } from '../controllers/departmentController';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../controllers/categoryController';
+import { getDashboardSummary } from '../controllers/dashboardController';
 import { protect } from '../../../middleware/authMiddleware';
 
 const router = Router();
@@ -50,6 +51,9 @@ router.use('/production', productionRoutes);
 router.use('/products', productRoutes);
 router.use('/finance', financeRoutes);
 router.get('/departments', protect, getDepartments);
+
+// Dashboard Summary
+router.get('/dashboard-summary', protect, getDashboardSummary);
 
 // Categories CRUD
 router.get('/categories', protect, getCategories);
