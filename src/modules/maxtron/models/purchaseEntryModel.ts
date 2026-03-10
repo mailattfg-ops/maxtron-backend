@@ -1,4 +1,5 @@
 import { supabase } from '../../../config/supabase';
+import { RMOrderModel } from './rmOrderModel';
 
 export const PurchaseEntryModel = {
     getAll: async (companyId?: string) => {
@@ -7,7 +8,7 @@ export const PurchaseEntryModel = {
             supplier_master!supplier_id(supplier_name, supplier_code),
             rm_orders(order_number),
             purchase_entry_items(
-                rm_id, received_quantity, rate, amount,
+                id, rm_id, ordered_quantity, received_quantity, rate, amount,
                 raw_materials!rm_id(rm_name, rm_code)
             )
         `);
@@ -38,7 +39,7 @@ export const PurchaseEntryModel = {
     },
 
     create: async (entryData: any) => {
-        const { items, ...entryInfo } = entryData;
+        const { items, reorder_missing, ...entryInfo } = entryData;
 
         // Calculate total_amount if not provided
         if (!entryInfo.total_amount) {
@@ -64,6 +65,32 @@ export const PurchaseEntryModel = {
         // Update main order status if linked and all items received (simplified)
         if (entryInfo.order_id) {
             await supabase.from('rm_orders').update({ status: 'RECEIVED' }).eq('id', entryInfo.order_id);
+        }
+
+        // --- BACK-ORDER LOGIC ---
+        if (reorder_missing) {
+            const missingItems = items.filter((i: any) => Number(i.ordered_quantity || 0) > Number(i.received_quantity));
+            if (missingItems.length > 0) {
+                const backOrderItems = missingItems.map((i: any) => ({
+                    rm_id: i.rm_id,
+                    quantity: Number(i.ordered_quantity) - Number(i.received_quantity),
+                    rate: i.rate,
+                    amount: (Number(i.ordered_quantity) - Number(i.received_quantity)) * Number(i.rate)
+                }));
+
+                const newOrderPayload = {
+                    company_id: entryInfo.company_id,
+                    supplier_id: entryInfo.supplier_id,
+                    order_date: new Date().toISOString().split('T')[0],
+                    order_number: `PO-BO-${Date.now().toString().slice(-6)}`,
+                    status: 'PENDING',
+                    remarks: `Back-order for GRN: ${entryInfo.entry_number}`,
+                    total_amount: backOrderItems.reduce((acc: number, cur: any) => acc + Number(cur.amount), 0),
+                    items: backOrderItems
+                };
+
+                await RMOrderModel.create(newOrderPayload);
+            }
         }
 
         return entry[0];

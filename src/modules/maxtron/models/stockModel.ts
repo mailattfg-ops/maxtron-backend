@@ -38,5 +38,54 @@ export const StockModel = {
         });
 
         return stockSummary;
+    },
+
+    getFGStockSummary: async (companyId?: string) => {
+        // Fetch all finished products
+        let prodQuery = supabase.from('finished_products').select('*');
+        if (companyId) prodQuery = prodQuery.eq('company_id', companyId);
+        const { data: products, error: prodErr } = await prodQuery;
+        if (prodErr) throw new Error(prodErr.message);
+
+        // Fetch primary production (Extrusion / Production Details)
+        let extrusionQuery = supabase.from('production_batches').select('product_id, extrusion_output_qty');
+        if (companyId) extrusionQuery = extrusionQuery.eq('company_id', companyId);
+        const { data: extrusionBatches, error: exErr } = await extrusionQuery;
+        if (exErr) throw new Error(exErr.message);
+
+        // Fetch secondary production (Cutting & Sealing)
+        let prodItemsQuery = supabase.from('production_conversion_items').select('product_id, quantity, production_conversions!inner(company_id)');
+        if (companyId) prodItemsQuery = prodItemsQuery.eq('production_conversions.company_id', companyId);
+        const { data: productionItems, error: prodItemsErr } = await prodItemsQuery;
+
+        // Fetch all sales deductions
+        let saleItemsQuery = supabase.from('sales_invoice_items').select('product_id, quantity, sales_invoices!inner(company_id)');
+        if (companyId) saleItemsQuery = saleItemsQuery.eq('sales_invoices.company_id', companyId);
+        const { data: salesItems, error: salesErr } = await saleItemsQuery;
+
+        // Calculate Stock
+        const fgStockSummary = products.map(p => {
+            // Production from primary stage (Extrusion)
+            const producedPrimary = extrusionBatches?.filter(item => item.product_id === p.id)
+                .reduce((acc, curr) => acc + Number(curr.extrusion_output_qty || 0), 0) || 0;
+
+            // Production from secondary stage (Cutting)
+            const producedSecondary = productionItems?.filter(item => item.product_id === p.id)
+                .reduce((acc, curr) => acc + Number(curr.quantity || 0), 0) || 0;
+
+            const produced = producedPrimary + producedSecondary;
+
+            const sold = salesItems?.filter(item => item.product_id === p.id)
+                .reduce((acc, curr) => acc + Number(curr.quantity || 0), 0) || 0;
+
+            return {
+                ...p,
+                produced,
+                sold,
+                balance: produced - sold
+            };
+        });
+
+        return fgStockSummary;
     }
 };

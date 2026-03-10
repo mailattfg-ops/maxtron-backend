@@ -10,7 +10,11 @@ export const ProductionModel = {
                 *,
                 finished_products(product_name, product_code),
                 supervisor:users!supervisor_id(name),
-                operator:users!operator_id(name)
+                operator:users!operator_id(name),
+                material_consumptions:consumption_id(
+                    *,
+                    raw_materials!rm_id(rm_name, rm_code)
+                )
             `)
             .eq('company_id', companyId)
             .order('date', { ascending: false });
@@ -27,7 +31,7 @@ export const ProductionModel = {
     createBatch: async (batchData: any) => {
         // Sanitize UUID fields: convert empty strings to null
         const sanitizedData = { ...batchData };
-        const uuidFields = ['product_id', 'operator_id', 'supervisor_id', 'company_id'];
+        const uuidFields = ['product_id', 'operator_id', 'supervisor_id', 'company_id', 'consumption_id'];
 
         uuidFields.forEach(field => {
             if (sanitizedData[field] === '') {
@@ -40,7 +44,9 @@ export const ProductionModel = {
             .insert([sanitizedData])
             .select()
             .single();
+
         if (error) throw new Error(error.message);
+
         return data;
     },
 
@@ -90,6 +96,26 @@ export const ProductionModel = {
                 .from('production_conversion_items')
                 .insert(itemsToInsert);
             if (itemError) throw new Error(itemError.message);
+        }
+
+        // --- AUTOMATED WASTAGE LOGGING ---
+        if (Number(data.wastage_qty || 0) > 0) {
+            // Get product_id from batch
+            const { data: batch } = await supabase
+                .from('production_batches')
+                .select('product_id')
+                .eq('id', data.batch_id)
+                .single();
+
+            await supabase.from('production_wastage').insert([{
+                company_id: data.company_id,
+                stage: 'Cutting & Sealing',
+                product_id: batch?.product_id || null,
+                date: data.date,
+                wastage_qty: Number(data.wastage_qty),
+                reason_code: 'PRODUCTION_WASTAGE',
+                remarks: `Job No: ${data.conversion_number}. Cutting & Sealing Wastage for Batch: ${data.id}. Remarks: ${data.remarks || ''}`
+            }]);
         }
 
         return data;
