@@ -53,40 +53,23 @@ async function runMigrations() {
     await client.query('DROP TABLE IF EXISTS employees CASCADE;');
 
     await client.query(`
-      CREATE TABLE IF NOT EXISTS employee_categories(
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        category_name VARCHAR(100) UNIQUE NOT NULL
-      );
-    `);
-
-    await client.query(`
-      INSERT INTO employee_categories(id, category_name) VALUES
-      (gen_random_uuid(), 'Management'),
-      (gen_random_uuid(), 'Staff - Technical'),
-      (gen_random_uuid(), 'Staff - Non-Technical'),
-      (gen_random_uuid(), 'Worker - Skilled'),
-      (gen_random_uuid(), 'Worker - Unskilled')
-      ON CONFLICT(category_name) DO NOTHING;
-    `);
-
-    await client.query(`
       CREATE TABLE IF NOT EXISTS companies(
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      company_code VARCHAR(50) UNIQUE NOT NULL,
-      company_name VARCHAR(255) UNIQUE NOT NULL,
-      gst_no VARCHAR(100),
-      license_no VARCHAR(100),
-      license_details TEXT,
-      license_renewal_date DATE,
-      pcb_authorization_no VARCHAR(100),
-      pcb_details TEXT,
-      pcb_renewal_date DATE,
-      no_of_employees INTEGER DEFAULT 0,
-      email VARCHAR(255),
-      phone VARCHAR(50),
-      website VARCHAR(255),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        company_code VARCHAR(50) UNIQUE NOT NULL,
+        company_name VARCHAR(255) UNIQUE NOT NULL,
+        gst_no VARCHAR(100),
+        license_no VARCHAR(100),
+        license_details TEXT,
+        license_renewal_date DATE,
+        pcb_authorization_no VARCHAR(100),
+        pcb_details TEXT,
+        pcb_renewal_date DATE,
+        no_of_employees INTEGER DEFAULT 0,
+        email VARCHAR(255),
+        phone VARCHAR(50),
+        website VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     await client.query(`
@@ -94,6 +77,34 @@ async function runMigrations() {
       (gen_random_uuid(), 'MAXTRON-CODE', 'MAXTRON'),
       (gen_random_uuid(), 'KEIL-CODE', 'KEIL')
       ON CONFLICT(company_name) DO NOTHING;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS employee_categories(
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        category_name VARCHAR(100) NOT NULL,
+        company_id UUID REFERENCES companies(id),
+        UNIQUE(category_name, company_id)
+      );
+    `);
+
+    console.log('3.5️⃣ Seeding Categories...');
+    await client.query(`
+      -- Global standard categories (company_id is NULL)
+      INSERT INTO employee_categories(category_name, company_id) VALUES
+      ('Management', NULL),
+      ('Staff - Technical', NULL),
+      ('Staff - Non-Technical', NULL),
+      ('Worker - Skilled', NULL),
+      ('Worker - Unskilled', NULL)
+      ON CONFLICT(category_name, company_id) WHERE company_id IS NULL DO NOTHING;
+
+      -- Company specific categories (cloned for each company as requested)
+      INSERT INTO employee_categories(category_name, company_id)
+      SELECT cats.name, c.id
+      FROM (VALUES ('Management'), ('Staff - Technical'), ('Staff - Non-Technical'), ('Worker - Skilled'), ('Worker - Unskilled')) AS cats(name)
+      CROSS JOIN companies c
+      ON CONFLICT(category_name, company_id) WHERE company_id IS NOT NULL DO NOTHING;
     `);
 
     console.log('4️⃣ Clean up dependencies to apply new structural updates...');

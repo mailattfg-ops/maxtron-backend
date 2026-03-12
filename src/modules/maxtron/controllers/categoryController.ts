@@ -6,7 +6,11 @@ export const getCategories = async (req: Request, res: Response) => {
     try {
         const { company_id } = req.query;
         let query = supabase.from('employee_categories').select('*').order('category_name', { ascending: true });
-        if (company_id) query = query.eq('company_id', company_id);
+        if (company_id) {
+            query = query.or(`company_id.eq.${company_id},company_id.is.null`);
+        } else {
+            query = query.is('company_id', null);
+        }
 
         const { data, error } = await query;
 
@@ -50,6 +54,12 @@ export const updateCategory = async (req: Request, res: Response) => {
         const { id } = req.params;
         const { category_name, company_id } = req.body;
 
+        // Ensure category is not a global standard category
+        const { data: existingData } = await supabase.from('employee_categories').select('*').eq('id', id).single();
+        if (existingData && !existingData.company_id) {
+            return res.status(403).json({ success: false, message: 'Cannot modify standard shared categories' });
+        }
+
         const { data, error } = await supabase
             .from('employee_categories')
             .update({ category_name, company_id })
@@ -71,6 +81,12 @@ export const updateCategory = async (req: Request, res: Response) => {
 export const deleteCategory = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+
+        // Ensure category is not a global standard category
+        const { data: existingData } = await supabase.from('employee_categories').select('*').eq('id', id).single();
+        if (existingData && !existingData.company_id) {
+            return res.status(403).json({ success: false, message: 'Cannot delete standard shared categories' });
+        }
 
         // Check if category is used by any users
         const { count, error: checkError } = await supabase
