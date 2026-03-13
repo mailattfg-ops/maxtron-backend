@@ -23,6 +23,15 @@ export const AttendanceModel = {
         return data ? data[0] : null;
     },
 
+    createBulk: async (attendanceList: any[]) => {
+        const { data, error } = await supabase
+            .from('attendance')
+            .insert(attendanceList)
+            .select();
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
     update: async (id: string, attendanceData: any) => {
         const { data, error } = await supabase
             .from('attendance')
@@ -53,5 +62,20 @@ export const AttendanceModel = {
         const { data, error } = await query;
         if (error) throw new Error(error.message);
         return data || [];
+    },
+
+    getByDateRange: async (startDate: string, endDate: string, companyId?: string) => {
+        let query = supabase.from('attendance').select(`
+            *,
+            users(name, employee_code)
+        `).gte('date', startDate).lte('date', endDate);
+
+        if (companyId) {
+            query = query.eq('company_id', companyId);
+        }
+        const { data, error } = await query.order('date', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data || [];
     }
 };
+

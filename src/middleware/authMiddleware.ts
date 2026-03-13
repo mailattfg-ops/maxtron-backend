@@ -24,3 +24,11 @@ export const protect = (req: AuthRequest, res: Response, next: NextFunction) => 
         return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
     }
 };
+
+export const adminOnly = (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (req.user && (req.user.role_name === 'admin' || req.user.email === 'admin@maxtron.com')) {
+        next();
+    } else {
+        return res.status(403).json({ success: false, message: 'Forbidden: Admin access only' });
+    }
+};

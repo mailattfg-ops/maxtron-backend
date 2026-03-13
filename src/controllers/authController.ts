@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { UserModel } from '../models/userModel';
+import { supabase } from '../config/supabase';
 
 // Authenticate user and get token
 export const login = async (req: Request, res: Response): Promise<void> => {
@@ -27,8 +28,27 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         }
 
         if (isMatch) {
+            // Fetch User Role Name
+            const { data: roleData } = await supabase
+                .from('user_types')
+                .select('name')
+                .eq('id', user.type)
+                .single();
+
+            // Fetch User Permissions
+            const { data: permissions } = await supabase
+                .from('role_permissions')
+                .select('permission_key, can_view, can_create, can_edit, can_delete')
+                .eq('role_id', user.type);
+
             const token = jwt.sign(
-                { id: user.id, role: user.type, email: user.username },
+                {
+                    id: user.id,
+                    role: user.type,
+                    role_name: roleData?.name || '',
+                    email: user.username,
+                    permissions: permissions || []
+                },
                 process.env.JWT_SECRET || 'super_secret_dev_key_12345',
                 { expiresIn: '30d' }
             );
@@ -36,7 +56,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             res.status(200).json({
                 success: true,
                 token,
-                user: { id: user.id, name: user.name, email: user.username, type: user.type }
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.username,
+                    type: user.type,
+                    role_name: roleData?.name || '',
+                    permissions: permissions || []
+                }
             });
         } else {
             res.status(401).json({ success: false, message: 'Invalid credentials' });

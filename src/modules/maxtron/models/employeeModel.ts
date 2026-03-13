@@ -4,9 +4,8 @@ import bcrypt from 'bcryptjs';
 
 export const EmployeeModel = {
     // Get all employees (from users table)
-    getAll: async (): Promise<User[]> => {
-        // Optionally, we could join departments and categories here
-        const { data, error } = await supabase
+    getAll: async (companyName?: string, companyId?: string): Promise<User[]> => {
+        let query = supabase
             .from('users')
             .select(`
                 *,
@@ -23,12 +22,21 @@ export const EmployeeModel = {
                 employee_targets(*),
                 employee_suspenses(*),
                 employee_incentive_slabs(*)
-            `)
-            .order('created_at', { ascending: false });
+            `);
+
+        if (companyName) {
+            query = query.filter('companies.company_name', 'eq', companyName);
+        }
+        if (companyId) {
+            query = query.filter('company_id', 'eq', companyId);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw new Error(error.message);
         return data || [];
     },
+
 
     // Get single employee by ID
     getById: async (id: string): Promise<User | null> => {
@@ -62,6 +70,12 @@ export const EmployeeModel = {
         const { employee_qualifications, employee_experiences, employee_certificates, employee_licenses, employee_passports, employee_loans, employee_targets, employee_suspenses, employee_incentive_slabs, addresses, ...baseUserData } = employeeData;
 
         let dataToInsert = { ...baseUserData };
+
+        // Remove empty employee_code to allow DB default (auto-increment) to work
+        if (!dataToInsert.employee_code || dataToInsert.employee_code.trim() === '') {
+            delete dataToInsert.employee_code;
+        }
+
         if (dataToInsert.password) {
             const salt = await bcrypt.genSalt(10);
             dataToInsert.password = await bcrypt.hash(dataToInsert.password, salt);
