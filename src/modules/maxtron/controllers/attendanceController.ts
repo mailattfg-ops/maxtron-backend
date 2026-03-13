@@ -24,6 +24,12 @@ export const getAttendanceByDate = async (req: Request, res: Response): Promise<
 
 export const createAttendance = async (req: Request, res: Response): Promise<void> => {
     try {
+        const { employee_id, date, company_id } = req.body;
+        const exists = await AttendanceModel.isDuplicate(employee_id, date, company_id);
+        if (exists) {
+            res.status(400).json({ success: false, message: 'Attendance already marked for this employee on this date' });
+            return;
+        }
         const newEntry = await AttendanceModel.create(req.body);
         res.status(201).json({ success: true, data: newEntry });
     } catch (error: any) {
@@ -34,8 +40,26 @@ export const createAttendance = async (req: Request, res: Response): Promise<voi
 export const createBulkAttendance = async (req: Request, res: Response): Promise<void> => {
     try {
         const { attendanceList } = req.body;
-        const result = await AttendanceModel.createBulk(attendanceList);
-        res.status(201).json({ success: true, count: result.length, data: result });
+        if (!attendanceList || attendanceList.length === 0) {
+            res.status(400).json({ success: false, message: 'Attendance list is empty' });
+            return;
+        }
+
+        const filteredList = [];
+        for (const entry of attendanceList) {
+            const exists = await AttendanceModel.isDuplicate(entry.employee_id, entry.date, entry.company_id);
+            if (!exists) {
+                filteredList.push(entry);
+            }
+        }
+
+        if (filteredList.length === 0) {
+            res.status(400).json({ success: false, message: 'All attendance records in the list are already marked for target date' });
+            return;
+        }
+
+        const result = await AttendanceModel.createBulk(filteredList);
+        res.status(201).json({ success: true, count: result.length, data: result, message: filteredList.length < attendanceList.length ? `${attendanceList.length - filteredList.length} duplicates skipped` : undefined });
     } catch (error: any) {
         res.status(500).json({ success: false, message: 'Failed to mark bulk attendance', error: error.message });
     }

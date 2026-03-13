@@ -1,0 +1,15 @@
+[
+  {
+    "id": "c9e88eab-8218-40e8-858f-7df4cd6c8417",
+    "employee_id": "07950739-ca99-4142-9554-ad6f4fa54276",
+    "company_id": "739f66c9-4f5a-428f-984e-ac9e2e689b59",
+    "customer_name": "Customer 1",
+    "location": "Kochi",
+    "visit_date": "2026-03-11",
+    "time_in": "09:00:00",
+    "time_out": "21:00:00",
+    "purpose": "Payment Collection",
+    "outcome": "Collected the payment",
+    "created_at": "2026-03-11T06:39:15.805187"
+  }
+]

@@ -76,6 +76,18 @@ export const AttendanceModel = {
         const { data, error } = await query.order('date', { ascending: false });
         if (error) throw new Error(error.message);
         return data || [];
+    },
+
+    isDuplicate: async (employeeId: string, date: string, companyId: string) => {
+        const { data, error } = await supabase
+            .from('attendance')
+            .select('id')
+            .eq('employee_id', employeeId)
+            .eq('date', date)
+            .eq('company_id', companyId)
+            .limit(1);
+        if (error) throw new Error(error.message);
+        return data && data.length > 0;
     }
 };
 

@@ -4,7 +4,8 @@ export const MarketingVisitModel = {
     getAll: async (companyId?: string) => {
         let query = supabase.from('marketing_visits').select(`
             *,
-            users(name, employee_code)
+            users(name, employee_code),
+            customers(customer_name, customer_code)
         `);
         if (companyId) {
             query = query.eq('company_id', companyId);

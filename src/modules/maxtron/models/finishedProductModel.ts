@@ -10,6 +10,7 @@ export interface FinishedProduct {
     avg_count_per_kg?: number;
     company_id: string;
     description?: string;
+    stock_threshold?: number;
     created_at?: string;
     updated_at?: string;
 }
