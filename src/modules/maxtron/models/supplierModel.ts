@@ -64,7 +64,7 @@ export const SupplierModel = {
         const payload = {
             supplier_code: input.supplier_code,
             supplier_name: input.supplier_name,
-            gst_no: input.gst_no,
+            gst_no: input.gst_no === '' || !input.gst_no ? null : input.gst_no,
             credit_period: Number(input.credit_period) || 0,
             credit_limit: Number(input.credit_limit) || 0,
             product_supplied: input.product_supplied,
@@ -111,7 +111,7 @@ export const SupplierModel = {
         const payload = {
             supplier_code: input.supplier_code,
             supplier_name: input.supplier_name,
-            gst_no: input.gst_no,
+            gst_no: input.gst_no === '' || !input.gst_no ? null : input.gst_no,
             credit_period: Number(input.credit_period) || 0,
             credit_limit: Number(input.credit_limit) || 0,
             product_supplied: input.product_supplied,

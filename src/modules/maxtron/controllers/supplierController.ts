@@ -30,7 +30,11 @@ export const createSupplier = async (req: Request, res: Response): Promise<void>
         const newSupplier = await SupplierModel.create(req.body);
         res.status(201).json({ success: true, data: newSupplier });
     } catch (error: any) {
-        res.status(500).json({ success: false, message: 'Failed to create supplier1111', error: error.message });
+        let message = 'Failed to create supplier';
+        if (error.message?.includes('duplicate key') && error.message?.includes('gst_no')) {
+            message = 'GST Number already exists for another supplier.';
+        }
+        res.status(400).json({ success: false, message, error: error.message });
     }
 };
 
@@ -44,7 +48,11 @@ export const updateSupplier = async (req: Request, res: Response): Promise<void>
         }
         res.status(200).json({ success: true, data: updatedSupplier });
     } catch (error: any) {
-        res.status(500).json({ success: false, message: 'Failed to update supplier', error: error.message });
+        let message = 'Failed to update supplier';
+        if (error.message?.includes('duplicate key') && error.message?.includes('gst_no')) {
+            message = 'GST Number already exists for another supplier.';
+        }
+        res.status(400).json({ success: false, message, error: error.message });
     }
 };
 
