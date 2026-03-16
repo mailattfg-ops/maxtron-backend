@@ -13,20 +13,21 @@ export interface User {
     is_married?: boolean;
     category_id?: string | null;
     company_id?: string | null;
+    is_deleted?: boolean;
     created_at?: string;
 }
 
 export const UserModel = {
     // Check the connection / get all users
     getAll: async (): Promise<User[]> => {
-        const { data, error } = await supabase.from('users').select('*');
+        const { data, error } = await supabase.from('users').select('*').eq('is_deleted', false);
         if (error) throw new Error(error.message);
         return data || [];
     },
 
     // Get user by username (for login)
     getByUsername: async (username: string): Promise<User | undefined> => {
-        const { data, error } = await supabase.from('users').select('*').eq('username', username).single();
+        const { data, error } = await supabase.from('users').select('*').eq('username', username).eq('is_deleted', false).single();
         if (error && error.code !== 'PGRST116') throw new Error(error.message); // PGRST116 means 0 rows returned
         return data || undefined;
     },

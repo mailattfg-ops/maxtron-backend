@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 
 export const EmployeeModel = {
     // Get all employees (from users table)
-    getAll: async (companyName?: string, companyId?: string, categoryId?: string): Promise<User[]> => {
+    getAll: async (companyName?: string, companyId?: string, categoryId?: string, isDeleted?: boolean): Promise<User[]> => {
         let query = supabase
             .from('users')
             .select(`
@@ -23,6 +23,10 @@ export const EmployeeModel = {
                 employee_suspenses(*),
                 employee_incentive_slabs(*)
             `);
+
+        // Default to showing only non-deleted if not specified
+        const showDeleted = isDeleted === true || isDeleted === (true as any);
+        query = query.eq('is_deleted', showDeleted);
 
         if (companyName) {
             query = query.filter('companies.company_name', 'eq', companyName);
@@ -174,11 +178,9 @@ export const EmployeeModel = {
         return user || null;
     },
 
-    // Delete an employee
+    // Delete an employee (Soft Delete)
     delete: async (id: string): Promise<boolean> => {
-        // Thanks to ON DELETE CASCADE on our dependencies, deleting the user 
-        // will automatically clean up addresses, loans, experiences, etc.
-        const { error } = await supabase.from('users').delete().eq('id', id);
+        const { error } = await supabase.from('users').update({ is_deleted: true }).eq('id', id);
         if (error) throw new Error(error.message);
         return true;
     }

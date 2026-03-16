@@ -39,7 +39,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
             { data: dailyCollections },
             { data: attendance }
         ] = await Promise.all([
-            supabase.from('users').select('*', { count: 'exact', head: true }).eq('company_id', cId),
+            supabase.from('users').select('*', { count: 'exact', head: true }).eq('company_id', cId).eq('is_deleted', false),
             supabase.from('customer_orders').select('*', { count: 'exact', head: true }).eq('company_id', cId).eq('status', 'PENDING'),
             supabase.from('sales_invoices').select('net_amount').eq('company_id', cId).gte('invoice_date', firstDayOfMonth.toISOString()),
             supabase.from('sales_invoices').select('net_amount').eq('company_id', cId).gte('invoice_date', firstDayOfPrevMonth.toISOString()).lte('invoice_date', lastDayOfPrevMonth.toISOString()),
