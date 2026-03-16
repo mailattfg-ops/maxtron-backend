@@ -4,7 +4,12 @@ export const AttendanceModel = {
     getAll: async (companyId?: string) => {
         let query = supabase.from('attendance').select(`
             *,
-            users(name, employee_code)
+            users(
+                name, 
+                employee_code,
+                category_id,
+                user_types(name)
+            )
         `);
         if (companyId) {
             query = query.eq('company_id', companyId);
@@ -54,7 +59,12 @@ export const AttendanceModel = {
     getByDate: async (date: string, companyId?: string) => {
         let query = supabase.from('attendance').select(`
             *,
-            users(name, employee_code)
+            users(
+                name, 
+                employee_code,
+                category_id,
+                user_types(name)
+            )
         `).eq('date', date);
         if (companyId) {
             query = query.eq('company_id', companyId);
@@ -67,7 +77,12 @@ export const AttendanceModel = {
     getByDateRange: async (startDate: string, endDate: string, companyId?: string) => {
         let query = supabase.from('attendance').select(`
             *,
-            users(name, employee_code)
+            users(
+                name, 
+                employee_code,
+                category_id,
+                user_types(name)
+            )
         `).gte('date', startDate).lte('date', endDate);
 
         if (companyId) {

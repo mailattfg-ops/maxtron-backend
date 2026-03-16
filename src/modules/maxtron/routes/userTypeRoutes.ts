@@ -9,7 +9,7 @@ import { protect, adminOnly } from '../../../middleware/authMiddleware';
 
 const router = Router();
 
-router.get('/', protect, adminOnly, getUserTypes);
+router.get('/', protect, getUserTypes);
 router.post('/', protect, adminOnly, createUserType);
 router.put('/:id', protect, adminOnly, updateUserType);
 router.delete('/:id', protect, adminOnly, deleteUserType);

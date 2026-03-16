@@ -52,6 +52,17 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                 company = companyData;
             }
 
+            // Fetch User Category Details
+            let category = null;
+            if (user.category_id) {
+                const { data: categoryData } = await supabase
+                    .from('employee_categories')
+                    .select('id, category_name')
+                    .eq('id', user.category_id)
+                    .single();
+                category = categoryData;
+            }
+
             const token = jwt.sign(
                 {
                     id: user.id,
@@ -61,6 +72,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                     company_id: user.company_id,
                     company_name: company?.company_name || '',
                     company_code: company?.company_code || '',
+                    category_id: user.category_id,
+                    category_name: category?.category_name || '',
                     permissions: permissions || []
                 },
                 process.env.JWT_SECRET || 'super_secret_dev_key_12345',
@@ -77,7 +90,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                     type: user.type,
                     role_name: roleData?.name || '',
                     company_id: user.company_id,
+                    category_id: user.category_id,
                     company: company,
+                    category: category,
                     permissions: permissions || []
                 }
             });

@@ -10,7 +10,7 @@ async function testUpdate() {
             return;
         }
         const sid = suppliers[0].id;
-        
+
         // Get first material
         const { supabase } = require('../../../config/supabase');
         const { data: materials } = await supabase.from('raw_materials').select('id').limit(1);
@@ -29,7 +29,7 @@ async function testUpdate() {
 
         // Verify
         const updated = await SupplierModel.getById(sid);
-        console.log('Verification Join Results:', updated.supplier_materials);
+        // console.log('Verification Join Results:', updated?.supplied_materials);
     } catch (err) {
         console.error('Error:', err);
     }

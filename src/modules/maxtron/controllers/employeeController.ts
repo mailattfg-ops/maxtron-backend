@@ -3,8 +3,8 @@ import { EmployeeModel } from '../models/employeeModel';
 
 export const getEmployees = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { company_name, company_id } = req.query;
-        const employees = await EmployeeModel.getAll(company_name as string, company_id as string);
+        const { company_name, company_id, category_id } = req.query;
+        const employees = await EmployeeModel.getAll(company_name as string, company_id as string, category_id as string);
         res.status(200).json({ success: true, count: employees.length, data: employees });
     } catch (error: any) {
         res.status(500).json({ success: false, message: 'Failed to fetch employees', error: error.message });
