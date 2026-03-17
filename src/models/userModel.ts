@@ -11,6 +11,8 @@ export interface User {
     date_of_birth?: string | null;
     guarantor_name?: string | null;
     is_married?: boolean;
+    phone?: string | null;
+    aadhaar?: string | null;
     category_id?: string | null;
     company_id?: string | null;
     is_deleted?: boolean;
