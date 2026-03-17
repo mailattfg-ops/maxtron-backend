@@ -1,0 +1,50 @@
+[
+  {
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "return_number",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "invoice_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "customer_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "return_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "return_through",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "courier_name",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "return_employee_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "reason",
+    "data_type": "text"
+  },
+  {
+    "column_name": "total_return_value",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "company_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "return_no",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "purchase_entry_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "supplier_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "return_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "quantity_returned",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "reason",
+    "data_type": "text"
+  },
+  {
+    "column_name": "dispatch_details",
+    "data_type": "text"
+  },
+  {
+    "column_name": "status",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "total_return_value",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "company_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  }
+]

@@ -18,8 +18,12 @@ export const StockModel = {
         if (companyId) conQuery = conQuery.eq('company_id', companyId);
         const { data: consumptions, error: conErr } = await conQuery;
 
-        // Note: Returns functionality is temporarily bypassed for stock calculation 
-        // because purchase_returns lacks item-level (rm_id) traceability in its current schema.
+        // Fetch all purchase returns where credit is received
+        let retQuery = supabase.from('purchase_returns')
+            .select('rm_id, quantity_returned')
+            .or('status.eq.CREDITED,status.eq.Credit Received');
+        if (companyId) retQuery = retQuery.eq('company_id', companyId);
+        const { data: returns, error: retErr } = await retQuery;
 
         // Calculate Stock
         const stockSummary = materials.map(m => {
@@ -28,12 +32,16 @@ export const StockModel = {
 
             const consumed = consumptions?.filter(c => c.rm_id === m.id)
                 .reduce((acc, curr) => acc + Number(curr.quantity_used || 0), 0) || 0;
+            
+            const returned = returns?.filter(r => r.rm_id === m.id)
+                .reduce((acc, curr) => acc + Number(curr.quantity_returned || 0), 0) || 0;
 
             return {
                 ...m,
                 purchased,
                 consumed,
-                balance: purchased - consumed
+                returned,
+                balance: purchased - consumed - returned
             };
         });
 

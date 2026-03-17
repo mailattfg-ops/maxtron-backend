@@ -21,7 +21,7 @@ export const FinishedProductModel = {
         if (companyId) {
             query = query.eq('company_id', companyId);
         }
-        const { data, error } = await query.order('product_name', { ascending: true });
+        const { data, error } = await query.order('created_at', { ascending: false });
         if (error) throw new Error(error.message);
         return data || [];
     },
