@@ -7,8 +7,8 @@ import payrollRoutes from '../../maxtron/routes/payrollRoutes';
 
 import userTypeRoutes from '../../maxtron/routes/userTypeRoutes';
 import permissionRoutes from '../../maxtron/routes/permissionRoutes';
-import { getCategories } from '../../maxtron/controllers/categoryController';
-import { getDepartments } from '../../maxtron/controllers/departmentController';
+import { getCategories, createCategory, updateCategory, deleteCategory } from '../../maxtron/controllers/categoryController';
+import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from '../../maxtron/controllers/departmentController';
 import rmTypeCodeRoutes from '../../maxtron/routes/rmTypeCodeRoutes';
 
 import operationRoutes from './operationRoutes';
@@ -48,7 +48,14 @@ router.use('/permissions', permissionRoutes);
 router.use('/payroll', payrollRoutes);
 
 router.get('/categories', getCategories);
+router.post('/categories', createCategory);
+router.put('/categories/:id', updateCategory);
+router.delete('/categories/:id', deleteCategory);
+
 router.get('/departments', getDepartments);
+router.post('/departments', createDepartment);
+router.put('/departments/:id', updateDepartment);
+router.delete('/departments/:id', deleteDepartment);
 router.use('/rm-type-codes', rmTypeCodeRoutes);
 
 export default router;
