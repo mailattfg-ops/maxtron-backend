@@ -1,0 +1,235 @@
+[dotenv@17.3.1] injecting env (5) from .env -- tip: ???? prevent committing .env to code: https://dotenvx.com/precommit
+[
+  {
+    "id": "b51fcc46-fc41-40e9-85ea-44c0d2d55780",
+    "module_name": "Dashboard",
+    "sub_module": null,
+    "permission_key": "dashboard_view",
+    "description": "View Dashboard metrics",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "058ede9e-c01c-43a2-acb1-5dfa24936aa7",
+    "module_name": "HR",
+    "sub_module": null,
+    "permission_key": "hr_view",
+    "description": "Access HR & Administration Group",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "c73a3fba-077e-4565-937e-991dfe394789",
+    "module_name": "HR",
+    "sub_module": "Employee Information",
+    "permission_key": "hr_employee_view",
+    "description": "View employee records",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "6470e029-5474-4a65-a92b-3858ca6969b3",
+    "module_name": "HR",
+    "sub_module": "Company Information",
+    "permission_key": "hr_company_view",
+    "description": "View company details",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "a40f4516-99ca-453a-bd20-ab1e43497d04",
+    "module_name": "HR",
+    "sub_module": "Attendance",
+    "permission_key": "hr_attendance_view",
+    "description": "View attendance logs",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "f7f5f602-f747-4bb8-b2a2-598cbbf13fe6",
+    "module_name": "HR",
+    "sub_module": "Marketing",
+    "permission_key": "hr_marketing_view",
+    "description": "View marketing visits",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "f439e21f-292f-4bfd-9958-5d9390329781",
+    "module_name": "Inventory",
+    "sub_module": null,
+    "permission_key": "inv_view",
+    "description": "Access Inventory & Procurement Group",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "86d9179e-dd3e-4f20-8918-6f236bef1a1c",
+    "module_name": "Inventory",
+    "sub_module": "Raw Material",
+    "permission_key": "inv_rm_view",
+    "description": "Manage raw material registry",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "89490735-33f5-481d-b06e-73499908a8b7",
+    "module_name": "Inventory",
+    "sub_module": "Suppliers",
+    "permission_key": "inv_supplier_view",
+    "description": "Manage supplier information",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "25f38090-d2d5-4d8f-ab6a-3adf7862195c",
+    "module_name": "Inventory",
+    "sub_module": "Orders",
+    "permission_key": "inv_order_view",
+    "description": "Issue purchase orders",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "1f5806be-a1c5-4621-bd5f-0cced73b0cb4",
+    "module_name": "Inventory",
+    "sub_module": "Purchase",
+    "permission_key": "inv_purchase_view",
+    "description": "Log purchase entries and returns",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "16d16bed-ce88-4d9c-80e6-0a6215e360d1",
+    "module_name": "Inventory",
+    "sub_module": "Consumption",
+    "permission_key": "inv_consumption_view",
+    "description": "Track material consumption",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "ae7806e1-a2e6-4977-8092-ffb567ec1e04",
+    "module_name": "Production",
+    "sub_module": null,
+    "permission_key": "prod_view",
+    "description": "Access Production MES Group",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "64f70543-8abe-486d-8650-2a6400f5919d",
+    "module_name": "Production",
+    "sub_module": "Products",
+    "permission_key": "prod_product_view",
+    "description": "View product details and wastage",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "8db0ebf3-5c58-493b-8287-38e78a650b2b",
+    "module_name": "Production",
+    "sub_module": "Extrusion",
+    "permission_key": "prod_extrusion_view",
+    "description": "Manage extrusion production",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "43e29205-94f7-4785-a947-d17b646b4f85",
+    "module_name": "Production",
+    "sub_module": "Cutting",
+    "permission_key": "prod_cutting_view",
+    "description": "Manage cutting and sealing",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "e0e12243-a2fd-4ae7-9d8f-698cda3e6f9a",
+    "module_name": "Production",
+    "sub_module": "Packing",
+    "permission_key": "prod_packing_view",
+    "description": "Manage packing logs",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "8ec07b05-633b-483a-af59-a5b5f4912242",
+    "module_name": "Sales",
+    "sub_module": null,
+    "permission_key": "sales_view",
+    "description": "Access Sales & Logistics Group",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "e6d749b0-a74a-4f6b-9f53-3e0ee7a44834",
+    "module_name": "Sales",
+    "sub_module": "Customers",
+    "permission_key": "sales_customers_view",
+    "description": "Manage customer database",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "756229b2-6572-422d-a8ef-c94f6c7f100a",
+    "module_name": "Sales",
+    "sub_module": "Vehicles",
+    "permission_key": "sales_vehicles_view",
+    "description": "Manage fleet information",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "3ce2b4be-7a3d-4c0e-af71-8b7a90b54641",
+    "module_name": "Sales",
+    "sub_module": "Orders",
+    "permission_key": "sales_orders_view",
+    "description": "Manage sales orders and delivery",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "70f8a022-bc10-493d-a620-fc38f3ce7ab6",
+    "module_name": "Sales",
+    "sub_module": "Invoice",
+    "permission_key": "sales_invoice_view",
+    "description": "Manage billing and sales returns",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "dab8b5c4-923e-4c14-aa2e-98defc451439",
+    "module_name": "Finance",
+    "sub_module": null,
+    "permission_key": "fin_view",
+    "description": "Access Finance & Accounts Group",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "db608c6c-49ff-4dbe-a6c1-2108c8b2f9fd",
+    "module_name": "Finance",
+    "sub_module": "Collection",
+    "permission_key": "fin_collection_view",
+    "description": "Track customer collections",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "821a242a-b30f-4f94-a55e-b52f08d49234",
+    "module_name": "Finance",
+    "sub_module": "Payment",
+    "permission_key": "fin_payment_view",
+    "description": "Track supplier payments",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "1814a16e-8cf0-42ff-a20c-f091c5180595",
+    "module_name": "Finance",
+    "sub_module": "Petty Cash",
+    "permission_key": "fin_petty_cash_view",
+    "description": "Track petty cash entries",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "f0fdec3d-e424-4a5e-b0ec-bdb8a332b341",
+    "module_name": "System",
+    "sub_module": "Admin",
+    "permission_key": "admin_permissions",
+    "description": "Access to Permission Console",
+    "created_at": "2026-03-11T05:54:46.154307+00:00"
+  },
+  {
+    "id": "8237c817-e413-4228-ac7a-365059519dc7",
+    "module_name": "HR",
+    "sub_module": "Expenses",
+    "permission_key": "hr_expense_view",
+    "description": "Access to manage expense heads and expenditures",
+    "created_at": "2026-03-18T08:53:21.7426+00:00"
+  },
+  {
+    "id": "ab4ee999-3183-4b09-9ef8-39de37b85c4f",
+    "module_name": "HR",
+    "sub_module": "Payroll",
+    "permission_key": "hr_payroll_view",
+    "description": "Access to manage employee payroll and statements",
+    "created_at": "2026-03-18T08:53:22.804252+00:00"
+  }
+]
