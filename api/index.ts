@@ -1,3 +1,3 @@
-import app from '../src/index';
-
-export default app;
+export default function handler(req: any, res: any) {
+  res.status(200).json({ status: 'ok', message: 'Vercel API Wrapper is working' });
+}
