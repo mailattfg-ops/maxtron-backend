@@ -199,6 +199,13 @@ async function runMigrations() {
         gst_no VARCHAR(100),
         credit_period INTEGER DEFAULT 0, -- Store as days
         credit_limit NUMERIC(12, 2) DEFAULT 0,
+        mobile_no VARCHAR(50),
+        email_id VARCHAR(255),
+        department VARCHAR(100),
+        custom_label1 VARCHAR(100),
+        custom_value1 TEXT,
+        custom_label2 VARCHAR(100),
+        custom_value2 TEXT,
         delivery_period VARCHAR(100), -- New Field
         delivery_mode VARCHAR(100), -- New Field
         opening_balance NUMERIC(12, 2) DEFAULT 0,
@@ -527,7 +534,9 @@ async function runMigrations() {
         customer_id UUID REFERENCES customers(id),
         executive_id UUID REFERENCES users(id),
         order_date DATE NOT NULL DEFAULT CURRENT_DATE,
-        total_value NUMERIC(15, 2) DEFAULT 0,
+        total_value NUMERIC(15, 2) DEFAULT 0, -- Taxable Value
+        tax_amount NUMERIC(15, 2) DEFAULT 0,
+        net_amount NUMERIC(15, 2) DEFAULT 0, -- Total inclusive of tax
         remarks TEXT,
         company_id UUID REFERENCES companies(id),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -541,7 +550,23 @@ async function runMigrations() {
         product_id UUID REFERENCES finished_products(id),
         quantity NUMERIC(15, 3) NOT NULL,
         rate NUMERIC(15, 2) NOT NULL,
-        value NUMERIC(15, 2) GENERATED ALWAYS AS (quantity * rate) STORED,
+        gst_percent NUMERIC(5, 2) DEFAULT 0,
+        gst_amount NUMERIC(15, 2) DEFAULT 0,
+        total_value NUMERIC(15, 2) DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS production_expenses (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        category VARCHAR(100), -- Spare Parts, Maintenance, Consumables, Utilities, Others
+        description TEXT,
+        amount NUMERIC(15, 2) NOT NULL DEFAULT 0,
+        payment_mode VARCHAR(50) DEFAULT 'CASH',
+        reference_no VARCHAR(100),
+        company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);

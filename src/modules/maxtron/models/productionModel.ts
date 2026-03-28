@@ -305,5 +305,52 @@ export const ProductionModel = {
             .eq('id', id);
         if (error) throw new Error(error.message);
         return true;
+    },
+
+    // Expenses
+    getExpenses: async (companyId: string) => {
+        const { data, error } = await supabase
+            .from('production_expenses')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('expense_date', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data || [];
+    },
+
+    createExpense: async (expenseData: any) => {
+        const sanitizedData = { ...expenseData };
+        if (sanitizedData.company_id === '') sanitizedData.company_id = null;
+
+        const { data, error } = await supabase
+            .from('production_expenses')
+            .insert([sanitizedData])
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    updateExpense: async (id: string, expenseData: any) => {
+        const sanitizedData = { ...expenseData };
+        if (sanitizedData.company_id === '') sanitizedData.company_id = null;
+
+        const { data, error } = await supabase
+            .from('production_expenses')
+            .update(sanitizedData)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    deleteExpense: async (id: string) => {
+        const { error } = await supabase
+            .from('production_expenses')
+            .delete()
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
     }
 };

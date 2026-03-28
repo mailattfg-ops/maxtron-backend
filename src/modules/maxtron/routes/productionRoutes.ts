@@ -28,4 +28,10 @@ router.post('/wastage', protect, productionController.createWastage);
 router.put('/wastage/:id', protect, productionController.updateWastage);
 router.delete('/wastage/:id', protect, productionController.deleteWastage);
 
+// Miscellaneous Expenses
+router.get('/expenses', protect, productionController.getExpenses);
+router.post('/expenses', protect, productionController.createExpense);
+router.put('/expenses/:id', protect, productionController.updateExpense);
+router.delete('/expenses/:id', protect, productionController.deleteExpense);
+
 export default router;

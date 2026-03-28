@@ -148,5 +148,42 @@ export const productionController = {
         } catch (error: any) {
             res.status(500).json({ success: false, message: error.message });
         }
+    },
+
+    // Expenses
+    getExpenses: async (req: Request, res: Response) => {
+        try {
+            const { company_id } = req.query;
+            const data = await ProductionModel.getExpenses(company_id as string);
+            res.json({ success: true, data });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    },
+    createExpense: async (req: Request, res: Response) => {
+        try {
+            const data = await ProductionModel.createExpense(req.body);
+            res.status(201).json({ success: true, data });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    },
+    updateExpense: async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            const data = await ProductionModel.updateExpense(id, req.body);
+            res.json({ success: true, data });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    },
+    deleteExpense: async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            await ProductionModel.deleteExpense(id);
+            res.json({ success: true, message: 'Expense record deleted' });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
     }
 };
