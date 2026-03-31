@@ -4,7 +4,7 @@ export const RMTypeCodeModel = {
     getAll: async (companyId?: string) => {
         let query = supabase.from('rm_type_codes').select('*');
         if (companyId) query = query.eq('company_id', companyId);
-        const { data, error } = await query.order('code', { ascending: true });
+        const { data, error } = await query.order('created_at', { ascending: false });
         if (error) throw new Error(error.message);
         return data || [];
     },
