@@ -26,6 +26,7 @@ import { getDepartments } from '../controllers/departmentController';
 import rmTypeCodeRoutes from './rmTypeCodeRoutes';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../controllers/categoryController';
 import { getDashboardSummary } from '../controllers/dashboardController';
+import announcementRoutes from './announcementRoutes';
 import { protect } from '../../../middleware/authMiddleware';
 
 const router = Router();
@@ -57,6 +58,7 @@ router.use('/finance', financeRoutes);
 router.use('/payroll', payrollRoutes);
 router.get('/departments', protect, getDepartments);
 router.use('/rm-type-codes', rmTypeCodeRoutes);
+router.use('/announcements', announcementRoutes);
 
 // Dashboard Summary
 router.get('/dashboard-summary', protect, getDashboardSummary);

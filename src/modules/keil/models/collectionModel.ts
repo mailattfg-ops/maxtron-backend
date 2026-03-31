@@ -54,8 +54,13 @@ export const CollectionModel = {
 
         if (hError) throw new Error(hError.message);
 
-        // Step 2: Save Entries
-        const mappedEntries = entriesData.map(e => ({ ...e, header_id: header.id }));
+        // Step 2: Save Entries (Sanitize time fields to avoid empty string errors)
+        const mappedEntries = entriesData.map(e => ({ 
+            ...e, 
+            header_id: header.id,
+            start_time: e.start_time === '' ? null : e.start_time,
+            end_time: e.end_time === '' ? null : e.end_time
+        }));
         const { data: entries, error: eError } = await supabase
             .from('keil_collection_entries')
             .insert(mappedEntries)

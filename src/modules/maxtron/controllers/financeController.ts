@@ -5,6 +5,7 @@ import { PettyCashModel } from '../models/pettyCashModel';
 import { PurchaseEntryModel } from '../models/purchaseEntryModel';
 import { InvoiceModel } from '../models/invoiceModel';
 import { supabase } from '../../../config/supabase';
+import { collectionSchema, paymentSchema, pettyCashSchema } from '../validators/financeValidator';
 
 export const FinanceController = {
     // --- Customer Collections ---
@@ -20,7 +21,15 @@ export const FinanceController = {
 
     createCollection: async (req: Request, res: Response) => {
         try {
-            const data = await CustomerCollectionModel.create(req.body);
+            const validation = collectionSchema.safeParse(req.body);
+            if (!validation.success) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Validation failed', 
+                    errors: validation.error.flatten().fieldErrors 
+                });
+            }
+            const data = await CustomerCollectionModel.create(validation.data);
             res.json({ success: true, data });
         } catch (err: any) {
             res.status(500).json({ success: false, message: 'Failed to record collection', error: err.message });
@@ -33,6 +42,23 @@ export const FinanceController = {
             res.json({ success: true, message: 'Collection deleted successfully' });
         } catch (err: any) {
             res.status(500).json({ success: false, message: 'Failed to delete collection', error: err.message });
+        }
+    },
+    
+    updateCollection: async (req: Request, res: Response) => {
+        try {
+            const validation = collectionSchema.safeParse(req.body);
+            if (!validation.success) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Validation failed', 
+                    errors: validation.error.flatten().fieldErrors 
+                });
+            }
+            const data = await CustomerCollectionModel.update(req.params.id as string, validation.data);
+            res.json({ success: true, data });
+        } catch (err: any) {
+            res.status(500).json({ success: false, message: 'Failed to update collection', error: err.message });
         }
     },
 
@@ -59,7 +85,15 @@ export const FinanceController = {
 
     createPayment: async (req: Request, res: Response) => {
         try {
-            const data = await SupplierPaymentModel.create(req.body);
+            const validation = paymentSchema.safeParse(req.body);
+            if (!validation.success) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Validation failed', 
+                    errors: validation.error.flatten().fieldErrors 
+                });
+            }
+            const data = await SupplierPaymentModel.create(validation.data);
             res.json({ success: true, data });
         } catch (err: any) {
             res.status(500).json({ success: false, message: 'Failed to record payment', error: err.message });
@@ -72,6 +106,23 @@ export const FinanceController = {
             res.json({ success: true, message: 'Payment deleted successfully' });
         } catch (err: any) {
             res.status(500).json({ success: false, message: 'Failed to delete payment', error: err.message });
+        }
+    },
+    
+    updatePayment: async (req: Request, res: Response) => {
+        try {
+            const validation = paymentSchema.safeParse(req.body);
+            if (!validation.success) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Validation failed', 
+                    errors: validation.error.flatten().fieldErrors 
+                });
+            }
+            const data = await SupplierPaymentModel.update(req.params.id as string, validation.data);
+            res.json({ success: true, data });
+        } catch (err: any) {
+            res.status(500).json({ success: false, message: 'Failed to update payment', error: err.message });
         }
     },
 
@@ -98,7 +149,15 @@ export const FinanceController = {
 
     createPettyCash: async (req: Request, res: Response) => {
         try {
-            const data = await PettyCashModel.create(req.body);
+            const validation = pettyCashSchema.safeParse(req.body);
+            if (!validation.success) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Validation failed', 
+                    errors: validation.error.flatten().fieldErrors 
+                });
+            }
+            const data = await PettyCashModel.create(validation.data);
             res.json({ success: true, data });
         } catch (err: any) {
             res.status(500).json({ success: false, message: 'Failed to record petty cash', error: err.message });
@@ -111,6 +170,23 @@ export const FinanceController = {
             res.json({ success: true, message: 'Petty cash record deleted successfully' });
         } catch (err: any) {
             res.status(500).json({ success: false, message: 'Failed to delete petty cash record', error: err.message });
+        }
+    },
+    
+    updatePettyCash: async (req: Request, res: Response) => {
+        try {
+            const validation = pettyCashSchema.safeParse(req.body);
+            if (!validation.success) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Validation failed', 
+                    errors: validation.error.flatten().fieldErrors 
+                });
+            }
+            const data = await PettyCashModel.update(req.params.id as string, validation.data);
+            res.json({ success: true, data });
+        } catch (err: any) {
+            res.status(500).json({ success: false, message: 'Failed to update petty cash record', error: err.message });
         }
     },
 

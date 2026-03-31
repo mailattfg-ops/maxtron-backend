@@ -1,6 +1,8 @@
 import { supabase } from '../../../config/supabase';
 
 const TABLE = 'supplier_master';
+const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+const nameRegex = /^[a-zA-Z0-9\s.\-&',]+$/;
 
 export const SupplierModel = {
     getAll: async (companyId?: string) => {
@@ -40,6 +42,14 @@ export const SupplierModel = {
     create: async (input: any) => {
         let regId = null;
         let billId = null;
+
+        if (input.gst_no && !gstRegex.test(input.gst_no)) {
+            throw new Error('Invalid GST number format. Must be 15 characters (e.g., 29ABCDE1234F1Z5).');
+        }
+
+        if (input.supplier_name && !nameRegex.test(input.supplier_name)) {
+            throw new Error('Invalid Supplier Name. Special characters are not allowed except . - & \' ,');
+        }
 
         if (input.supplier_address && input.supplier_address.street) {
             const { data: reg, error: regErr } = await supabase
@@ -103,6 +113,14 @@ export const SupplierModel = {
         const current = await SupplierModel.getById(id);
         let regId = current.supplier_address_id;
         let billId = current.billing_address_id;
+
+        if (input.gst_no && !gstRegex.test(input.gst_no)) {
+            throw new Error('Invalid GST number format. Must be 15 characters (e.g., 29ABCDE1234F1Z5).');
+        }
+
+        if (input.supplier_name && !nameRegex.test(input.supplier_name)) {
+            throw new Error('Invalid Supplier Name. Special characters are not allowed except . - & \' ,');
+        }
 
         if (input.supplier_address && input.supplier_address.street) {
             if (regId) {

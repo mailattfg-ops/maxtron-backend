@@ -4,7 +4,7 @@ export const BranchModel = {
     getAll: async (companyId?: string) => {
         let query = supabase.from('keil_branches').select('*');
         if (companyId) query = query.eq('company_id', companyId);
-        const { data, error } = await query.order('branch_name');
+        const { data, error } = await query.order('created_at', { ascending: false });
         if (error) throw new Error(error.message);
         return data || [];
     },

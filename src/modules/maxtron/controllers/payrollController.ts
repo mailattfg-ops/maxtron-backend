@@ -31,10 +31,10 @@ export const getPayroll = async (req: Request, res: Response): Promise<void> => 
 
 export const createPayroll = async (req: Request, res: Response): Promise<void> => {
     try {
-        const newItem = await PayrollModel.create(req.body);
-        res.status(201).json({ success: true, data: newItem });
+        const item = await PayrollModel.create(req.body);
+        res.status(201).json({ success: true, data: item });
     } catch (error: any) {
-        res.status(500).json({ success: false, message: 'Failed to create payroll record', error: error.message });
+        res.status(500).json({ success: false, message: 'Failed to process payroll record', error: error.message });
     }
 };
 

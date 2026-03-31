@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { CustomerModel } from '../models/customerModel';
+import { customerSchema } from '../validators/customerValidator';
 
 export const getCustomers = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -27,9 +28,14 @@ export const getCustomer = async (req: Request, res: Response): Promise<void> =>
 
 export const createCustomer = async (req: Request, res: Response): Promise<void> => {
     try {
-        const newCustomer = await CustomerModel.create(req.body);
+        const validatedData = customerSchema.parse(req.body);
+        const newCustomer = await CustomerModel.create(validatedData);
         res.status(201).json({ success: true, data: newCustomer });
     } catch (error: any) {
+        if (error.name === 'ZodError') {
+            res.status(400).json({ success: false, message: 'Validation failed', errors: error.errors });
+            return;
+        }
         res.status(500).json({ success: false, message: 'Failed to create customer', error: error.message });
     }
 };
@@ -37,13 +43,18 @@ export const createCustomer = async (req: Request, res: Response): Promise<void>
 export const updateCustomer = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
-        const updatedCustomer = await CustomerModel.update(id as string, req.body);
+        const validatedData = customerSchema.parse(req.body);
+        const updatedCustomer = await CustomerModel.update(id as string, validatedData);
         if (!updatedCustomer) {
             res.status(404).json({ success: false, message: 'Customer not found' });
             return;
         }
         res.status(200).json({ success: true, data: updatedCustomer });
     } catch (error: any) {
+        if (error.name === 'ZodError') {
+            res.status(400).json({ success: false, message: 'Validation failed', errors: error.errors });
+            return;
+        }
         res.status(500).json({ success: false, message: 'Failed to update customer', error: error.message });
     }
 };

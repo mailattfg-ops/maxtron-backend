@@ -9,7 +9,10 @@ export interface UserType {
 export const UserTypeModel = {
     // Fetch all user types
     getAll: async (): Promise<UserType[]> => {
-        const { data, error } = await supabase.from('user_types').select('*');
+        const { data, error } = await supabase
+            .from('user_types')
+            .select('*')
+            .order('id', { ascending: false });
         if (error) throw new Error(error.message);
         return data || [];
     },

@@ -10,10 +10,14 @@ import permissionRoutes from '../../maxtron/routes/permissionRoutes';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../../maxtron/controllers/categoryController';
 import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from '../../maxtron/controllers/departmentController';
 import rmTypeCodeRoutes from '../../maxtron/routes/rmTypeCodeRoutes';
+import announcementRoutes from '../../maxtron/routes/announcementRoutes';
+import customerRoutes from '../../maxtron/routes/customerRoutes';
+import supplierRoutes from '../../maxtron/routes/supplierRoutes';
 
 import operationRoutes from './operationRoutes';
 import fleetRoutes from './fleetRoutes';
 import expenseRoutes from './expenseRoutes';
+import financeRoutes from '../../maxtron/routes/financeRoutes';
 import { protect } from '../../../middleware/authMiddleware';
 
 const router = Router();
@@ -29,6 +33,7 @@ router.use((req, res, next) => {
 router.use('/operations', operationRoutes);
 router.use('/fleet', fleetRoutes);
 router.use('/hr-payroll/expenses', expenseRoutes);
+router.use('/finance', financeRoutes);
 
 router.get('/fleet-test', (req, res) => {
     res.json({ success: true, message: 'Fleet sub-router base is reachable' });
@@ -43,6 +48,8 @@ router.use('/employees', employeeRoutes);
 router.use('/companies', companyRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/marketing-visits', marketingVisitRoutes);
+router.use('/customers', customerRoutes);
+router.use('/suppliers', supplierRoutes);
 router.use('/user-types', userTypeRoutes);
 router.use('/permissions', permissionRoutes);
 router.use('/payroll', payrollRoutes);
@@ -57,5 +64,6 @@ router.post('/departments', createDepartment);
 router.put('/departments/:id', updateDepartment);
 router.delete('/departments/:id', deleteDepartment);
 router.use('/rm-type-codes', rmTypeCodeRoutes);
+router.use('/announcements', announcementRoutes);
 
 export default router;

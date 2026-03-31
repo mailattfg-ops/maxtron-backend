@@ -2,7 +2,10 @@ import { supabase } from '../config/supabase';
 
 export const PermissionModel = {
     getAllPermissions: async () => {
-        const { data, error } = await supabase.from('permissions').select('*');
+        const { data, error } = await supabase
+            .from('permissions')
+            .select('*')
+            .order('id', { ascending: false });
         if (error) throw new Error(error.message);
         return data || [];
     },

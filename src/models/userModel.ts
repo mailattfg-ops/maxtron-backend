@@ -23,7 +23,11 @@ export interface User {
 export const UserModel = {
     // Check the connection / get all users
     getAll: async (): Promise<User[]> => {
-        const { data, error } = await supabase.from('users').select('*').eq('is_deleted', false);
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('is_deleted', false)
+            .order('created_at', { ascending: false });
         if (error) throw new Error(error.message);
         return data || [];
     },

@@ -6,7 +6,7 @@ export const VehicleModel = {
             .from('keil_vehicles')
             .select('*')
             .eq('company_id', companyId)
-            .order('registration_number', { ascending: true });
+            .order('created_at', { ascending: false });
         if (error) throw error;
         return data;
     },

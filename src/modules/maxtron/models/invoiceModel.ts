@@ -97,7 +97,7 @@ export const InvoiceModel = {
             .eq('customer_id', customerId)
             .eq('company_id', companyId)
             .gt('pending_amount', 0)
-            .order('invoice_date', { ascending: true });
+            .order('invoice_date', { ascending: false });
 
         if (error) throw new Error(error.message);
         return data || [];

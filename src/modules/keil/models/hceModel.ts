@@ -4,7 +4,7 @@ export const HCEModel = {
     getAll: async (companyId?: string) => {
         let query = supabase.from('keil_hces').select('*, keil_branches(branch_name)');
         if (companyId) query = query.eq('company_id', companyId);
-        const { data, error } = await query.order('hce_name');
+        const { data, error } = await query.order('created_at', { ascending: false });
         if (error) throw new Error(error.message);
         return (data || []).map(h => ({
             ...h,

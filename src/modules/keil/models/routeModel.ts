@@ -4,7 +4,7 @@ export const RouteModel = {
     getAll: async (companyId?: string) => {
         let query = supabase.from('keil_routes').select('*, keil_branches(branch_name)');
         if (companyId) query = query.eq('company_id', companyId);
-        const { data, error } = await query.order('route_name');
+        const { data, error } = await query.order('created_at', { ascending: false });
         if (error) throw new Error(error.message);
         return (data || []).map(r => ({
             ...r,
@@ -31,6 +31,10 @@ export const RouteModel = {
     },
 
     delete: async (id: string) => {
+        // Step 1: Remove any assignments to this route to prevent FK constraint errors
+        await supabase.from('keil_route_assignments').delete().eq('route_id', id);
+        
+        // Step 2: Delete the route itself
         const { error } = await supabase.from('keil_routes').delete().eq('id', id);
         if (error) throw new Error(error.message);
         return true;

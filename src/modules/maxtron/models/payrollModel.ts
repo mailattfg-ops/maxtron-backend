@@ -32,7 +32,7 @@ export const PayrollModel = {
     create: async (payrollData: any) => {
         const { data, error } = await supabase
             .from('employee_payroll')
-            .insert([payrollData])
+            .upsert(payrollData, { onConflict: 'employee_id,month,year' })
             .select();
         if (error) throw new Error(error.message);
         return data[0];

@@ -8,7 +8,7 @@ export const ProductionModel = {
             .from('production_batches')
             .select(`
                 *,
-                finished_products(product_name, product_code),
+                finished_products(product_name, product_code, color),
                 supervisor:users!supervisor_id(name),
                 operator:users!operator_id(name),
                 material_consumptions:consumption_id(
@@ -17,7 +17,7 @@ export const ProductionModel = {
                 )
             `)
             .eq('company_id', companyId)
-            .order('date', { ascending: false });
+            .order('batch_number', { ascending: false });
 
         if (error) {
             console.error('Supabase Error in getBatches:', error);
@@ -50,6 +50,37 @@ export const ProductionModel = {
         return data;
     },
 
+    updateBatch: async (id: string, batchData: any) => {
+        const sanitizedData = { ...batchData };
+        const uuidFields = ['product_id', 'operator_id', 'supervisor_id', 'company_id', 'consumption_id'];
+
+        uuidFields.forEach(field => {
+            if (sanitizedData[field] === '') {
+                sanitizedData[field] = null;
+            }
+        });
+
+        const { data, error } = await supabase
+            .from('production_batches')
+            .update(sanitizedData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    deleteBatch: async (id: string) => {
+        const { error } = await supabase
+            .from('production_batches')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
     // Conversion (Cutting & Sealing)
     getConversions: async (companyId: string) => {
         const { data, error } = await supabase
@@ -64,7 +95,7 @@ export const ProductionModel = {
                 )
             `)
             .eq('company_id', companyId)
-            .order('date', { ascending: false });
+            .order('conversion_number', { ascending: false });
         if (error) throw new Error(error.message);
         return data || [];
     },
@@ -109,7 +140,7 @@ export const ProductionModel = {
 
             await supabase.from('production_wastage').insert([{
                 company_id: data.company_id,
-                stage: 'Cutting & Sealing',
+                stage: 'Cutting',
                 product_id: batch?.product_id || null,
                 date: data.date,
                 wastage_qty: Number(data.wastage_qty),
@@ -119,6 +150,125 @@ export const ProductionModel = {
         }
 
         return data;
+    },
+
+    updateConversion: async (id: string, convData: any) => {
+        const { items, ...header } = convData;
+        const sanitizedHeader = { ...header };
+        ['batch_id', 'operator_id', 'company_id'].forEach(f => {
+            if (sanitizedHeader[f] === '') sanitizedHeader[f] = null;
+        });
+
+        const { data, error } = await supabase
+            .from('production_conversions')
+            .update(sanitizedHeader)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        // Update items: delete existing and insert new ones
+        await supabase.from('production_conversion_items').delete().eq('conversion_id', id);
+
+        if (items && items.length > 0) {
+            const itemsToInsert = items.map((item: any) => {
+                const sanitizedItem = { ...item, conversion_id: id };
+                if (sanitizedItem.product_id === '') sanitizedItem.product_id = null;
+                delete sanitizedItem.id; // Ensure we don't try to insert old IDs
+                return sanitizedItem;
+            });
+            const { error: itemError } = await supabase
+                .from('production_conversion_items')
+                .insert(itemsToInsert);
+            if (itemError) throw new Error(itemError.message);
+        }
+
+        return data;
+    },
+
+    deleteConversion: async (id: string) => {
+        const { error } = await supabase
+            .from('production_conversions')
+            .delete()
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    // Printing
+    getPrinting: async (companyId: string) => {
+        const { data, error } = await supabase
+            .from('production_printing')
+            .select(`
+                *,
+                production_batches(
+                    batch_number, 
+                    finished_products(product_name, product_code, color)
+                ),
+                operator:users!operator_id(name)
+            `)
+            .eq('company_id', companyId)
+            .order('printing_number', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data || [];
+    },
+
+    createPrinting: async (printData: any) => {
+        const sanitizedData = { ...printData };
+        ['batch_id', 'operator_id', 'company_id'].forEach(f => {
+            if (sanitizedData[f] === '') sanitizedData[f] = null;
+        });
+
+        const { data, error } = await supabase
+            .from('production_printing')
+            .insert([sanitizedData])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        // Track wastage for printing
+        if (Number(data.wastage_qty || 0) > 0) {
+            const { data: batch } = await supabase.from('production_batches').select('product_id').eq('id', data.batch_id).single();
+            await supabase.from('production_wastage').insert([{
+                company_id: data.company_id,
+                stage: 'Printing',
+                product_id: batch?.product_id || null,
+                date: data.date,
+                wastage_qty: Number(data.wastage_qty),
+                reason_code: 'PRINTING_WASTAGE',
+                remarks: `Job No: ${data.printing_number}. Printing Wastage for Batch: ${data.id}. Ink: ${data.ink_details}`
+            }]);
+        }
+
+        return data;
+    },
+
+    updatePrinting: async (id: string, printData: any) => {
+        const sanitizedData = { ...printData };
+        ['batch_id', 'operator_id', 'company_id'].forEach(f => {
+            if (sanitizedData[f] === '') sanitizedData[f] = null;
+        });
+
+        const { data, error } = await supabase
+            .from('production_printing')
+            .update(sanitizedData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    deletePrinting: async (id: string) => {
+        const { error } = await supabase
+            .from('production_printing')
+            .delete()
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
     },
 
     // Packing
@@ -152,6 +302,31 @@ export const ProductionModel = {
         return data;
     },
 
+    updatePacking: async (id: string, packData: any) => {
+        const sanitizedData = { ...packData };
+        ['conversion_id', 'company_id'].forEach(f => {
+            if (sanitizedData[f] === '') sanitizedData[f] = null;
+        });
+
+        const { data, error } = await supabase
+            .from('production_packing')
+            .update(sanitizedData)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    deletePacking: async (id: string) => {
+        const { error } = await supabase
+            .from('production_packing')
+            .delete()
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
     // Wastage
     getWastage: async (companyId: string) => {
         const { data, error } = await supabase
@@ -180,5 +355,77 @@ export const ProductionModel = {
             .single();
         if (error) throw new Error(error.message);
         return data;
+    },
+
+    updateWastage: async (id: string, wastageData: any) => {
+        const sanitizedData = { ...wastageData };
+        ['product_id', 'material_id', 'company_id'].forEach(f => {
+            if (sanitizedData[f] === '') sanitizedData[f] = null;
+        });
+
+        const { data, error } = await supabase
+            .from('production_wastage')
+            .update(sanitizedData)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    deleteWastage: async (id: string) => {
+        const { error } = await supabase
+            .from('production_wastage')
+            .delete()
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    // Expenses
+    getExpenses: async (companyId: string) => {
+        const { data, error } = await supabase
+            .from('production_expenses')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('expense_date', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data || [];
+    },
+
+    createExpense: async (expenseData: any) => {
+        const sanitizedData = { ...expenseData };
+        if (sanitizedData.company_id === '') sanitizedData.company_id = null;
+
+        const { data, error } = await supabase
+            .from('production_expenses')
+            .insert([sanitizedData])
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    updateExpense: async (id: string, expenseData: any) => {
+        const sanitizedData = { ...expenseData };
+        if (sanitizedData.company_id === '') sanitizedData.company_id = null;
+
+        const { data, error } = await supabase
+            .from('production_expenses')
+            .update(sanitizedData)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    deleteExpense: async (id: string) => {
+        const { error } = await supabase
+            .from('production_expenses')
+            .delete()
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
     }
 };
