@@ -75,6 +75,43 @@ export const productionController = {
             res.status(500).json({ success: false, message: error.message });
         }
     },
+    
+    // Printing
+    getPrinting: async (req: Request, res: Response) => {
+        try {
+            const { company_id } = req.query;
+            const data = await ProductionModel.getPrinting(company_id as string);
+            res.json({ success: true, data });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    },
+    createPrinting: async (req: Request, res: Response) => {
+        try {
+            const data = await ProductionModel.createPrinting(req.body);
+            res.status(201).json({ success: true, data });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    },
+    updatePrinting: async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            const data = await ProductionModel.updatePrinting(id, req.body);
+            res.json({ success: true, data });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    },
+    deletePrinting: async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            await ProductionModel.deletePrinting(id);
+            res.json({ success: true, message: 'Printing record deleted' });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    },
 
     // Packing
     getPacking: async (req: Request, res: Response) => {

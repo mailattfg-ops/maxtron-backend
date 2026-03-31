@@ -16,6 +16,12 @@ router.post('/conversions', protect, productionController.createConversion);
 router.put('/conversions/:id', protect, productionController.updateConversion);
 router.delete('/conversions/:id', protect, productionController.deleteConversion);
 
+// Printing
+router.get('/printing', protect, productionController.getPrinting);
+router.post('/printing', protect, productionController.createPrinting);
+router.put('/printing/:id', protect, productionController.updatePrinting);
+router.delete('/printing/:id', protect, productionController.deletePrinting);
+
 // Packing
 router.get('/packing', protect, productionController.getPacking);
 router.post('/packing', protect, productionController.createPacking);
