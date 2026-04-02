@@ -5,7 +5,7 @@ import { supabase } from '../../../config/supabase';
 export const getCategories = async (req: Request, res: Response) => {
     try {
         const { company_id } = req.query;
-        let query = supabase.from('employee_categories').select('*').order('created_at', { ascending: false });
+        let query = supabase.from('employee_categories').select('*').order('category_name', { ascending: true });
         if (company_id) {
             query = query.or(`company_id.eq.${company_id},company_id.is.null`);
         } else {

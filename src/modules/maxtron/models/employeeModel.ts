@@ -10,13 +10,14 @@ export const EmployeeModel = {
             .select(`
                 *,
                 employee_categories(category_name),
-                companies(company_name),
+                companies!inner(company_name),
                 user_types(name),
                 addresses(*),
                 employee_qualifications(*),
                 employee_experiences(*),
                 employee_certificates(*),
                 employee_licenses(*),
+                employee_insurances(*),
                 employee_passports(*),
                 employee_loans(*),
                 employee_targets(*),
@@ -29,7 +30,7 @@ export const EmployeeModel = {
         query = query.eq('is_deleted', showDeleted);
 
         if (companyName) {
-            query = query.filter('companies.company_name', 'eq', companyName);
+            query = query.ilike('companies.company_name', `%${companyName}%`);
         }
         if (companyId) {
             query = query.filter('company_id', 'eq', companyId);
@@ -59,6 +60,7 @@ export const EmployeeModel = {
                 employee_experiences(*),
                 employee_certificates(*),
                 employee_licenses(*),
+                employee_insurances(*),
                 employee_passports(*),
                 employee_loans(*),
                 employee_targets(*),
@@ -74,7 +76,7 @@ export const EmployeeModel = {
 
     // Create a new employee
     create: async (employeeData: any): Promise<User> => {
-        const { employee_qualifications, employee_experiences, employee_certificates, employee_licenses, employee_passports, employee_loans, employee_targets, employee_suspenses, employee_incentive_slabs, addresses, ...baseUserData } = employeeData;
+        const { employee_qualifications, employee_experiences, employee_certificates, employee_licenses, employee_insurances, employee_passports, employee_loans, employee_targets, employee_suspenses, employee_incentive_slabs, addresses, ...baseUserData } = employeeData;
 
         let dataToInsert = { ...baseUserData };
 
@@ -100,8 +102,27 @@ export const EmployeeModel = {
         if (user) {
             const insertRelation = async (table: string, records: any[]) => {
                 if (records && records.length > 0) {
-                    const mappedRecords = records.map(r => ({ ...r, employee_id: user.id }));
-                    await supabase.from(table).insert(mappedRecords);
+                    // Filter out completely empty records (for single-record tables like licenses)
+                    const validRecords = records.filter(r => {
+                      const values = Object.values(r).filter(v => v !== '' && v !== null && v !== undefined);
+                      return values.length > 0;
+                    });
+
+                    if (validRecords.length > 0) {
+                      const mappedRecords = validRecords.map(r => {
+                        const sanitized = { ...r, employee_id: user.id };
+                        // Convert empty strings to null for DB compatibility
+                        Object.keys(sanitized).forEach(key => {
+                          if (sanitized[key] === '') sanitized[key] = null;
+                        });
+                        return sanitized;
+                      });
+                      const { error } = await supabase.from(table).insert(mappedRecords);
+                      if (error) {
+                        console.error(`Error inserting into ${table}:`, error);
+                        throw new Error(`Failed to save ${table}: ${error.message}`);
+                      }
+                    }
                 }
             };
 
@@ -109,6 +130,7 @@ export const EmployeeModel = {
             await insertRelation('employee_experiences', employee_experiences);
             await insertRelation('employee_certificates', employee_certificates);
             await insertRelation('employee_licenses', employee_licenses);
+            await insertRelation('employee_insurances', employee_insurances);
             await insertRelation('employee_passports', employee_passports);
             await insertRelation('employee_loans', employee_loans);
             await insertRelation('employee_targets', employee_targets);
@@ -125,7 +147,12 @@ export const EmployeeModel = {
     },
     // Update existing employee
     update: async (id: string, updates: any): Promise<User | null> => {
-        const { employee_qualifications, employee_experiences, employee_certificates, employee_licenses, employee_passports, employee_loans, employee_targets, employee_suspenses, employee_incentive_slabs, addresses, ...baseUserData } = updates;
+        const { 
+          employee_qualifications, employee_experiences, employee_certificates, 
+          employee_licenses, employee_insurances, employee_passports, 
+          employee_loans, employee_targets, employee_suspenses, 
+          employee_incentive_slabs, addresses, ...baseUserData 
+        } = updates;
 
         let dataToUpdate = { ...baseUserData };
         if (dataToUpdate.password) {
@@ -148,10 +175,34 @@ export const EmployeeModel = {
         if (user) {
             const recreateRelation = async (table: string, records: any[]) => {
                 if (records) {
-                    await supabase.from(table).delete().eq('employee_id', user.id);
+                    const { error: delError } = await supabase.from(table).delete().eq('employee_id', user.id);
+                    if (delError) {
+                      console.error(`Error deleting from ${table}:`, delError);
+                      throw new Error(`Failed to update ${table}: ${delError.message}`);
+                    }
+
                     if (records.length > 0) {
-                        const mappedRecords = records.map(r => ({ ...r, employee_id: user.id }));
-                        await supabase.from(table).insert(mappedRecords);
+                        // Filter out completely empty records
+                        const validRecords = records.filter(r => {
+                          const values = Object.values(r).filter(v => v !== '' && v !== null && v !== undefined);
+                          return values.length > 0;
+                        });
+
+                        if (validRecords.length > 0) {
+                          const mappedRecords = validRecords.map(r => {
+                            const sanitized = { ...r, employee_id: user.id };
+                            // Convert empty strings to null for DB compatibility
+                            Object.keys(sanitized).forEach(key => {
+                              if (sanitized[key] === '') sanitized[key] = null;
+                            });
+                            return sanitized;
+                          });
+                          const { error: insError } = await supabase.from(table).insert(mappedRecords);
+                          if (insError) {
+                            console.error(`Error inserting into ${table}:`, insError);
+                            throw new Error(`Failed to update ${table}: ${insError.message}`);
+                          }
+                        }
                     }
                 }
             };
@@ -160,6 +211,7 @@ export const EmployeeModel = {
             await recreateRelation('employee_experiences', employee_experiences);
             await recreateRelation('employee_certificates', employee_certificates);
             await recreateRelation('employee_licenses', employee_licenses);
+            await recreateRelation('employee_insurances', employee_insurances);
             await recreateRelation('employee_passports', employee_passports);
             await recreateRelation('employee_loans', employee_loans);
             await recreateRelation('employee_targets', employee_targets);

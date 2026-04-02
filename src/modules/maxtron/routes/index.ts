@@ -33,6 +33,12 @@ const router = Router();
 
 router.use(protect);
 
+router.use((req, res, next) => {
+    // Enforce multi-tenancy for Maxtron
+    req.query.company_name = 'Maxtron';
+    next();
+});
+
 // Modular routing for Maxtron Operations
 router.use('/inventory', inventoryRoutes);
 router.use('/employees', employeeRoutes);

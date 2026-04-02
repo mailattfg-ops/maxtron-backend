@@ -25,10 +25,10 @@ export const VehicleModel = {
         const { data, error } = await supabase
             .from('keil_vehicles')
             .insert([payload])
-            .select()
-            .single();
+            .select();
+        
         if (error) throw error;
-        return data;
+        return data?.[0] || null;
     },
 
     update: async (id: string, payload: any) => {
@@ -36,10 +36,10 @@ export const VehicleModel = {
             .from('keil_vehicles')
             .update(payload)
             .eq('id', id)
-            .select()
-            .single();
+            .select();
+            
         if (error) throw error;
-        return data;
+        return data?.[0] || null;
     },
 
     delete: async (id: string) => {

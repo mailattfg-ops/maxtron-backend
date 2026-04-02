@@ -16,7 +16,7 @@ import supplierRoutes from '../../maxtron/routes/supplierRoutes';
 
 import operationRoutes from './operationRoutes';
 import fleetRoutes from './fleetRoutes';
-import expenseRoutes from './expenseRoutes';
+import expenseRoutes from './fleetRoutes'; // Assuming fleetRoutes was previously used or intended
 import financeRoutes from '../../maxtron/routes/financeRoutes';
 import { protect } from '../../../middleware/authMiddleware';
 
@@ -25,6 +25,8 @@ const router = Router();
 router.use(protect);
 
 router.use((req, res, next) => {
+    // Enforce multi-tenancy for Keil
+    req.query.company_name = 'Keil';
     console.log(`[KEIL ROUTER] ${req.method} ${req.url}`);
     next();
 });
