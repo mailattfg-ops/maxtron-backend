@@ -29,13 +29,13 @@ export const EmployeeModel = {
         const showDeleted = isDeleted === true || isDeleted === (true as any);
         query = query.eq('is_deleted', showDeleted);
 
-        if (companyName) {
+        if (companyName && companyName.trim() !== '') {
             query = query.ilike('companies.company_name', `%${companyName}%`);
         }
-        if (companyId) {
+        if (companyId && companyId.trim() !== '') {
             query = query.filter('company_id', 'eq', companyId);
         }
-        if (categoryId) {
+        if (categoryId && categoryId.trim() !== '') {
             query = query.filter('category_id', 'eq', categoryId);
         }
 
@@ -44,7 +44,6 @@ export const EmployeeModel = {
         if (error) throw new Error(error.message);
         return data || [];
     },
-
 
     // Get single employee by ID
     getById: async (id: string): Promise<User | null> => {
@@ -102,7 +101,7 @@ export const EmployeeModel = {
         if (user) {
             const insertRelation = async (table: string, records: any[]) => {
                 if (records && records.length > 0) {
-                    // Filter out completely empty records (for single-record tables like licenses)
+                    // Filter out completely empty records
                     const validRecords = records.filter(r => {
                       const values = Object.values(r).filter(v => v !== '' && v !== null && v !== undefined);
                       return values.length > 0;
@@ -119,7 +118,6 @@ export const EmployeeModel = {
                       });
                       const { error } = await supabase.from(table).insert(mappedRecords);
                       if (error) {
-                        console.error(`Error inserting into ${table}:`, error);
                         throw new Error(`Failed to save ${table}: ${error.message}`);
                       }
                     }
@@ -145,6 +143,7 @@ export const EmployeeModel = {
 
         return user;
     },
+
     // Update existing employee
     update: async (id: string, updates: any): Promise<User | null> => {
         const { 
@@ -175,14 +174,9 @@ export const EmployeeModel = {
         if (user) {
             const recreateRelation = async (table: string, records: any[]) => {
                 if (records) {
-                    const { error: delError } = await supabase.from(table).delete().eq('employee_id', user.id);
-                    if (delError) {
-                      console.error(`Error deleting from ${table}:`, delError);
-                      throw new Error(`Failed to update ${table}: ${delError.message}`);
-                    }
+                    await supabase.from(table).delete().eq('employee_id', user.id);
 
                     if (records.length > 0) {
-                        // Filter out completely empty records
                         const validRecords = records.filter(r => {
                           const values = Object.values(r).filter(v => v !== '' && v !== null && v !== undefined);
                           return values.length > 0;
@@ -191,7 +185,6 @@ export const EmployeeModel = {
                         if (validRecords.length > 0) {
                           const mappedRecords = validRecords.map(r => {
                             const sanitized = { ...r, employee_id: user.id };
-                            // Convert empty strings to null for DB compatibility
                             Object.keys(sanitized).forEach(key => {
                               if (sanitized[key] === '') sanitized[key] = null;
                             });
@@ -199,7 +192,6 @@ export const EmployeeModel = {
                           });
                           const { error: insError } = await supabase.from(table).insert(mappedRecords);
                           if (insError) {
-                            console.error(`Error inserting into ${table}:`, insError);
                             throw new Error(`Failed to update ${table}: ${insError.message}`);
                           }
                         }

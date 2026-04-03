@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as FleetController from '../controllers/fleetController';
+import { FuelFillingController } from '../controllers/fuelFillingController';
 
 const router = Router();
 
@@ -23,5 +24,11 @@ router.delete('/repairs/:id', FleetController.deleteVehicleRepair);
 
 // Intelligence & Analytics
 router.get('/intelligence', FleetController.getFleetIntelligence);
+
+// Fuel Filling Records
+router.get('/fuel-fillings', FuelFillingController.getAll);
+router.post('/fuel-fillings', FuelFillingController.create);
+router.put('/fuel-fillings/:id', FuelFillingController.update);
+router.delete('/fuel-fillings/:id', FuelFillingController.delete);
 
 export default router;
