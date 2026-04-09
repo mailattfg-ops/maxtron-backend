@@ -50,7 +50,7 @@ export const StockModel = {
 
     getFGStockSummary: async (companyId?: string) => {
         // Fetch all finished products
-        let prodQuery = supabase.from('finished_products').select('*');
+        let prodQuery = supabase.from('finished_products').select('*').order('created_at', { ascending: false });
         if (companyId) prodQuery = prodQuery.eq('company_id', companyId);
         const { data: products, error: prodErr } = await prodQuery;
         if (prodErr) throw new Error(prodErr.message);
@@ -86,11 +86,13 @@ export const StockModel = {
             const sold = salesItems?.filter(item => item.product_id === p.id)
                 .reduce((acc, curr) => acc + Number(curr.quantity || 0), 0) || 0;
 
+            const openingStock = Number(p.opening_stock || 0);
+
             return {
                 ...p,
                 produced,
                 sold,
-                balance: produced - sold
+                balance: openingStock + produced - sold
             };
         });
 

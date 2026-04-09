@@ -27,6 +27,7 @@ import rmTypeCodeRoutes from './rmTypeCodeRoutes';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../controllers/categoryController';
 import { getDashboardSummary } from '../controllers/dashboardController';
 import announcementRoutes from './announcementRoutes';
+import marketingOfferRoutes from './marketingOfferRoutes';
 import { protect } from '../../../middleware/authMiddleware';
 
 const router = Router();
@@ -65,6 +66,7 @@ router.use('/payroll', payrollRoutes);
 router.get('/departments', protect, getDepartments);
 router.use('/rm-type-codes', rmTypeCodeRoutes);
 router.use('/announcements', announcementRoutes);
+router.use('/marketing-offers', marketingOfferRoutes);
 
 // Dashboard Summary
 router.get('/dashboard-summary', protect, getDashboardSummary);
