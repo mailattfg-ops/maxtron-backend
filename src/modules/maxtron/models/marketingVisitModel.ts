@@ -5,7 +5,7 @@ export const MarketingVisitModel = {
         let query = supabase.from('marketing_visits').select(`
             *,
             users(name, employee_code),
-            customers(customer_name, customer_code)
+            customers(customer_name, customer_code, contact_person, mobile_no)
         `);
         if (companyId) {
             query = query.eq('company_id', companyId);

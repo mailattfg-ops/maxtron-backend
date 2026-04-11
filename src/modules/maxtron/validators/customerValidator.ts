@@ -14,8 +14,8 @@ export const customerSchema = z.object({
         .optional()
         .nullable()
         .or(z.literal('')),
-    department: z.string()
-        .min(2, "Department name should be at least 2 characters")
+    contact_person: z.string()
+        .min(2, "Contact person name should be at least 2 characters")
         .optional()
         .nullable()
         .or(z.literal('')),
