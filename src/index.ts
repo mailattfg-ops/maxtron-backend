@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes';
 import maxtronRoutes from './modules/maxtron/routes';
 import keilRoutes from './modules/keil/routes';
 import { protect } from './middleware/authMiddleware';
+import { supabase } from './config/supabase';
 
 dotenv.config();
 
@@ -40,6 +41,17 @@ app.use('/api/keil', keilRoutes);
 // Health Check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'ERP Backend is healthy' });
+});
+
+// Keep-alive route for Supabase (prevents pausing on free tier)
+app.get('/api/keep-alive', async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('companies').select('id').limit(1);
+        if (error) throw error;
+        res.json({ success: true, message: 'Supabase is active', data });
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // Diagnostic Route (Check Env Vars without exposing them)

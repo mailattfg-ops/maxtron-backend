@@ -34,14 +34,18 @@ async function clearData() {
     
     console.log('🚀 Clearing operational data...');
 
+    // Handle all tables except 'users' first
     for (const table of tablesToClear) {
-      if (table === 'users') {
-        console.log('⚠️ Sanitizing users table (preserving admin)...');
-        await pool.query("DELETE FROM users WHERE username != 'admin@maxtron.com'");
-      } else {
+      if (table !== 'users') {
         console.log(`🧹 Truncating ${table}...`);
         await pool.query(`TRUNCATE TABLE "${table}" CASCADE`);
       }
+    }
+
+    // Handle 'users' table last
+    if (tablesToClear.includes('users')) {
+      console.log('⚠️ Sanitizing users table (preserving admin)...');
+      await pool.query("DELETE FROM users WHERE username != 'admin@maxtron.com'");
     }
 
     console.log('✅ All target tables cleared successfully!');

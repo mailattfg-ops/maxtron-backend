@@ -10,7 +10,8 @@
     "dev": "nodemon src/index.ts",
     "start": "ts-node src/index.ts",
     "build": "npx tsc --project tsconfig.json",
-    "migrate": "ts-node src/scripts/migrate.ts"
+    "migrate": "ts-node src/scripts/migrate.ts",
+    "keep-alive": "ts-node src/scripts/keep-alive.ts"
   },
   "keywords": [],
   "author": "",
