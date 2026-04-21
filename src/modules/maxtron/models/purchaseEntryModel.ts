@@ -8,7 +8,7 @@ export const PurchaseEntryModel = {
             supplier_master!supplier_id(supplier_name, supplier_code),
             rm_orders(order_number),
             purchase_entry_items(
-                id, rm_id, ordered_quantity, received_quantity, rate, amount,
+                id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount,
                 raw_materials!rm_id(rm_name, rm_code)
             )
         `);
@@ -28,7 +28,7 @@ export const PurchaseEntryModel = {
                 supplier_master!supplier_id(supplier_name, supplier_code),
                 rm_orders(order_number, order_date),
                 purchase_entry_items(
-                    id, rm_id, ordered_quantity, received_quantity, rate, amount,
+                    id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount,
                     raw_materials!rm_id(rm_name, rm_code)
                 )
             `)
@@ -41,10 +41,27 @@ export const PurchaseEntryModel = {
     create: async (entryData: any) => {
         let { items, reorder_missing, ...entryInfo } = entryData;
 
+        // Sanitize UUID fields: convert empty strings to null
+        if (!entryInfo.order_id || entryInfo.order_id === '') {
+            entryInfo.order_id = null;
+        }
+
+        // --- GST & TOTAL CALCULATION ---
+        const calculateTotal = (itemList: any[]) => {
+            return itemList.reduce((sum: number, item: any) => {
+                const lineAmount = Number(item.amount) || (Number(item.received_quantity) * Number(item.rate));
+                const gst = Number(item.gst_amount || 0);
+                // Note: If 'amount' was the total (base + gst), we should be careful.
+                // But in the model, 'amount' is usually base.
+                // Let's assume based on new logic that Sum of items is the total.
+                // Actually, let's check how the frontend sends it.
+                return sum + lineAmount;
+            }, 0) + Number(entryInfo.unloading_charges || 0);
+        };
+
         // --- EXTRA QUANTITY AUTO RE-ORDER LOGIC ---
-        // Identify items where received > ordered (only for linked POs with ordered_quantity > 0)
         const extraItems = items.filter((i: any) => Number(i.received_quantity) > Number(i.ordered_quantity || 0) && Number(i.ordered_quantity || 0) > 0);
-        
+
         if (extraItems.length > 0) {
             const extraOrderItems = extraItems.map((i: any) => ({
                 rm_id: i.rm_id,
@@ -71,22 +88,24 @@ export const PurchaseEntryModel = {
                 const ordered = Number(i.ordered_quantity || 0);
                 const received = Number(i.received_quantity);
                 if (received > ordered && ordered > 0) {
+                    const baseAmount = ordered * Number(i.rate);
+                    const gstAmount = (baseAmount * Number(i.gst_percent || 0)) / 100;
                     return {
                         ...i,
                         received_quantity: ordered,
-                        amount: ordered * Number(i.rate)
+                        amount: baseAmount,
+                        gst_amount: gstAmount
                     };
                 }
                 return i;
             });
 
-            // Force recalculation of total_amount for current entry based on adjusted quantities
-            entryInfo.total_amount = items.reduce((sum: number, item: any) => sum + (Number(item.received_quantity) * Number(item.rate)), 0) + Number(entryInfo.unloading_charges || 0);
+            // Force recalculation of total_amount
+            entryInfo.total_amount = calculateTotal(items);
         }
 
-        // Calculate total_amount if not provided (for non-extra cases or if still missing)
         if (!entryInfo.total_amount) {
-            entryInfo.total_amount = items.reduce((sum: number, item: any) => sum + (Number(item.received_quantity) * Number(item.rate)), 0) + Number(entryInfo.unloading_charges || 0);
+            entryInfo.total_amount = calculateTotal(items);
         }
 
         const { data: entry, error: entryErr } = await supabase
@@ -98,8 +117,11 @@ export const PurchaseEntryModel = {
 
         const entryId = entry[0].id;
         const itemsWithId = items.map((item: any) => {
-            const { amount, ...rest } = item;
-            return { ...rest, entry_id: entryId };
+            // In our system, item.amount is the line total (base + gst)
+            // We store the base amount in the 'amount' column.
+            const totalAmount = Number(item.amount) || (Number(item.received_quantity) * Number(item.rate)) + Number(item.gst_amount || 0);
+            const baseAmount = totalAmount - Number(item.gst_amount || 0);
+            return { ...item, amount: baseAmount, entry_id: entryId };
         });
 
         const { error: itemsErr } = await supabase.from('purchase_entry_items').insert(itemsWithId);
@@ -110,17 +132,10 @@ export const PurchaseEntryModel = {
             await supabase.from('rm_orders').update({ status: 'RECEIVED' }).eq('id', entryInfo.order_id);
         }
 
-        // --- BACK-ORDER LOGIC (for missing items) ---
+        // --- BACK-ORDER LOGIC ---
         if (reorder_missing) {
             const missingItems = items.filter((i: any) => Number(i.ordered_quantity || 0) > Number(i.received_quantity));
             if (missingItems.length > 0) {
-                const backOrderItems = missingItems.map((i: any) => ({
-                    rm_id: i.rm_id,
-                    quantity: Number(i.ordered_quantity) - Number(i.received_quantity),
-                    rate: i.rate,
-                    amount: (Number(i.ordered_quantity) - Number(i.ordered_quantity)) * Number(i.rate) // Wait, typo in original? missingItems filtered received < ordered. Should be (ordered - received).
-                }));
-                // Correcting the typo in existing back-order logic while I'm at it
                 const correctedBackOrderItems = missingItems.map((i: any) => ({
                     rm_id: i.rm_id,
                     quantity: Number(i.ordered_quantity) - Number(i.received_quantity),
@@ -149,9 +164,12 @@ export const PurchaseEntryModel = {
     update: async (id: string, entryData: any) => {
         const { items, reorder_missing, ...entryInfo } = entryData;
 
-        // Calculate total_amount if items changed
+        if (!entryInfo.order_id || entryInfo.order_id === '') {
+            entryInfo.order_id = null;
+        }
+
         if (items) {
-            entryInfo.total_amount = items.reduce((sum: number, item: any) => sum + (Number(item.received_quantity) * Number(item.rate)), 0) + Number(entryInfo.unloading_charges || 0);
+            entryInfo.total_amount = items.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0) + Number(entryInfo.unloading_charges || 0);
         }
 
         const { data: entry, error: entryErr } = await supabase
@@ -164,8 +182,9 @@ export const PurchaseEntryModel = {
 
         await supabase.from('purchase_entry_items').delete().eq('entry_id', id);
         const itemsWithId = items.map((item: any) => {
-            const { amount, ...rest } = item;
-            return { ...rest, entry_id: id };
+            const totalAmount = Number(item.amount) || (Number(item.received_quantity) * Number(item.rate)) + Number(item.gst_amount || 0);
+            const baseAmount = totalAmount - Number(item.gst_amount || 0);
+            return { ...item, amount: baseAmount, entry_id: id };
         });
         await supabase.from('purchase_entry_items').insert(itemsWithId);
 
