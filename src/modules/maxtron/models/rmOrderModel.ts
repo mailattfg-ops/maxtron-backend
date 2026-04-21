@@ -6,7 +6,7 @@ export const RMOrderModel = {
             *,
             supplier_master!supplier_id(supplier_name, supplier_code),
             rm_order_items(
-                rm_id, quantity, rate, amount,
+                rm_id, quantity, rate, amount, gst_percent, gst_amount,
                 raw_materials!rm_id(rm_name, rm_code)
             )
         `);
@@ -25,7 +25,7 @@ export const RMOrderModel = {
                 *,
                 supplier_master!supplier_id(supplier_name, supplier_code),
                 rm_order_items(
-                    id, rm_id, quantity, rate, amount,
+                    id, rm_id, quantity, rate, amount, gst_percent, gst_amount,
                     raw_materials!rm_id(rm_name, rm_code, grade)
                 )
             `)
@@ -38,7 +38,6 @@ export const RMOrderModel = {
     create: async (orderData: any) => {
         const { items, ...orderInfo } = orderData;
 
-        // Start transaction (Supabase doesn't have native client-side tx yet, using RPC or sequential)
         const { data: order, error: orderErr } = await supabase
             .from('rm_orders')
             .insert([orderInfo])
@@ -48,8 +47,18 @@ export const RMOrderModel = {
 
         const orderId = order[0].id;
         const itemsWithId = items.map((item: any) => {
-            const { amount, ...rest } = item;
-            return { ...rest, order_id: orderId };
+            // Calculate base amount if not provided or if total amount is provided separately
+            // In frontend, 'amount' is usually line total (base + gst)
+            // System stores base in 'amount' column
+            const totalAmount = Number(item.total_line_amount || item.amount) || (Number(item.quantity) * Number(item.rate)) + Number(item.gst_amount || 0);
+            const baseAmount = totalAmount - Number(item.gst_amount || 0);
+            return {
+                ...item,
+                amount: baseAmount,
+                order_id: orderId,
+                // Clean up any frontend helper fields
+                total_line_amount: undefined
+            };
         });
 
         const { error: itemsErr } = await supabase.from('rm_order_items').insert(itemsWithId);
@@ -72,8 +81,14 @@ export const RMOrderModel = {
         // Replace items
         await supabase.from('rm_order_items').delete().eq('order_id', id);
         const itemsWithId = items.map((item: any) => {
-            const { amount, ...rest } = item;
-            return { ...rest, order_id: id };
+            const totalAmount = Number(item.total_line_amount || item.amount) || (Number(item.quantity) * Number(item.rate)) + Number(item.gst_amount || 0);
+            const baseAmount = totalAmount - Number(item.gst_amount || 0);
+            return {
+                ...item,
+                amount: baseAmount,
+                order_id: id,
+                total_line_amount: undefined
+            };
         });
         await supabase.from('rm_order_items').insert(itemsWithId);
 
