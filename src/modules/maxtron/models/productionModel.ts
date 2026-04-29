@@ -8,7 +8,7 @@ export const ProductionModel = {
             .from('production_batches')
             .select(`
                 *,
-                finished_products(product_name, product_code, color),
+                finished_products(id, product_name, product_code, color),
                 supervisor:users!supervisor_id(name),
                 operator:users!operator_id(name),
                 material_consumptions:consumption_id(

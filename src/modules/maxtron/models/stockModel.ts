@@ -55,11 +55,6 @@ export const StockModel = {
         const { data: products, error: prodErr } = await prodQuery;
         if (prodErr) throw new Error(prodErr.message);
 
-        // Fetch primary production (Extrusion / Production Details)
-        let extrusionQuery = supabase.from('production_batches').select('product_id, extrusion_output_qty');
-        if (companyId) extrusionQuery = extrusionQuery.eq('company_id', companyId);
-        const { data: extrusionBatches, error: exErr } = await extrusionQuery;
-        if (exErr) throw new Error(exErr.message);
 
         // Fetch secondary production (Cutting & Sealing)
         let prodItemsQuery = supabase.from('production_conversion_items').select('product_id, quantity, production_conversions!inner(company_id)');
@@ -73,15 +68,9 @@ export const StockModel = {
 
         // Calculate Stock
         const fgStockSummary = products.map(p => {
-            // Production from primary stage (Extrusion)
-            const producedPrimary = extrusionBatches?.filter(item => item.product_id === p.id)
-                .reduce((acc, curr) => acc + Number(curr.extrusion_output_qty || 0), 0) || 0;
-
-            // Production from secondary stage (Cutting)
-            const producedSecondary = productionItems?.filter(item => item.product_id === p.id)
+            // Production ONLY from secondary stage (Cutting & Sealing)
+            const produced = productionItems?.filter(item => item.product_id === p.id)
                 .reduce((acc, curr) => acc + Number(curr.quantity || 0), 0) || 0;
-
-            const produced = producedPrimary + producedSecondary;
 
             const sold = salesItems?.filter(item => item.product_id === p.id)
                 .reduce((acc, curr) => acc + Number(curr.quantity || 0), 0) || 0;
@@ -97,5 +86,43 @@ export const StockModel = {
         });
 
         return fgStockSummary;
+    },
+
+    getSFGStockSummary: async (companyId?: string) => {
+        // Fetch all products
+        let prodQuery = supabase.from('finished_products').select('*').order('created_at', { ascending: false });
+        if (companyId) prodQuery = prodQuery.eq('company_id', companyId);
+        const { data: products, error: prodErr } = await prodQuery;
+        if (prodErr) throw new Error(prodErr.message);
+
+        // Fetch Extrusion Output (Produced SFG)
+        let extrusionQuery = supabase.from('production_batches').select('product_id, extrusion_output_qty');
+        if (companyId) extrusionQuery = extrusionQuery.eq('company_id', companyId);
+        const { data: extrusionBatches, error: exErr } = await extrusionQuery;
+        if (exErr) throw new Error(exErr.message);
+
+        // Fetch Cutting Input (Consumed SFG)
+        // We need to link production_conversions to products via production_batches
+        let cuttingQuery = supabase.from('production_conversions').select('input_qty, production_batches!inner(product_id, company_id)');
+        if (companyId) cuttingQuery = cuttingQuery.eq('production_batches.company_id', companyId);
+        const { data: cuttingEntries, error: cutErr } = await cuttingQuery;
+        if (cutErr) throw new Error(cutErr.message);
+
+        const sfgStockSummary = products.map(p => {
+            const produced = extrusionBatches?.filter(item => item.product_id === p.id)
+                .reduce((acc, curr) => acc + Number(curr.extrusion_output_qty || 0), 0) || 0;
+
+            const consumed = cuttingEntries?.filter((item: any) => item.production_batches.product_id === p.id)
+                .reduce((acc, curr) => acc + Number(curr.input_qty || 0), 0) || 0;
+
+            return {
+                ...p,
+                produced,
+                consumed,
+                balance: produced - consumed
+            };
+        });
+
+        return sfgStockSummary;
     }
 };

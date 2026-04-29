@@ -6,13 +6,14 @@ import {
     updateInventoryItem,
     deleteInventoryItem
 } from '../controllers/inventoryController';
-import { getStockSummary, getFGStockSummary } from '../controllers/stockController';
+import { getStockSummary, getFGStockSummary, getSFGStockSummary } from '../controllers/stockController';
 import { protect } from '../../../middleware/authMiddleware';
 
 const router = Router();
 
 router.get('/stock-summary', protect, getStockSummary);
 router.get('/fg-stock-summary', protect, getFGStockSummary);
+router.get('/sfg-stock-summary', protect, getSFGStockSummary);
 
 // Map route paths to controller methods
 router.route('/')

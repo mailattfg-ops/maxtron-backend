@@ -61,11 +61,7 @@ export const RMOrderModel = {
         });
 
         const { error: itemsErr } = await supabase.from('rm_order_items').insert(itemsWithId);
-        if (itemsErr) {
-            // Cleanup: delete the order if items failed to insert
-            await supabase.from('rm_orders').delete().eq('id', orderId);
-            throw new Error(`Failed to insert order items: ${itemsErr.message}`);
-        }
+        if (itemsErr) throw new Error(itemsErr.message);
 
         return order[0];
     },

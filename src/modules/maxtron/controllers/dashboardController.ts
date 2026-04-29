@@ -21,6 +21,22 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
         sevenDaysAgo.setHours(0, 0, 0, 0);
 
+        // Fetch production stats separately to keep Promise.all clean
+        const [curProductionRes, prevProductionRes] = await Promise.all([
+            supabase.from('production_conversion_items')
+                .select('quantity, production_conversions!inner(date, company_id)')
+                .eq('production_conversions.company_id', cId)
+                .gte('production_conversions.date', firstDayOfMonth.toISOString()),
+            supabase.from('production_conversion_items')
+                .select('quantity, production_conversions!inner(date, company_id)')
+                .eq('production_conversions.company_id', cId)
+                .gte('production_conversions.date', firstDayOfPrevMonth.toISOString())
+                .lte('production_conversions.date', lastDayOfPrevMonth.toISOString())
+        ]);
+
+        const curProduction = curProductionRes.data || [];
+        const prevProduction = prevProductionRes.data || [];
+
         // 1. Fetch Stats in Parallel
         const [
             { count: employeeCount },
@@ -29,8 +45,6 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
             { data: prevSales },
             { data: curPurchases },
             { data: prevPurchases },
-            { data: curProduction },
-            { data: prevProduction },
             { data: collections },
             { data: payments },
             { data: expenses },
@@ -45,8 +59,6 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
             supabase.from('sales_invoices').select('net_amount').eq('company_id', cId).gte('invoice_date', firstDayOfPrevMonth.toISOString()).lte('invoice_date', lastDayOfPrevMonth.toISOString()),
             supabase.from('purchase_entries').select('total_amount').eq('company_id', cId).gte('entry_date', firstDayOfMonth.toISOString()),
             supabase.from('purchase_entries').select('total_amount').eq('company_id', cId).gte('entry_date', firstDayOfPrevMonth.toISOString()).lte('entry_date', lastDayOfPrevMonth.toISOString()),
-            supabase.from('production_batches').select('extrusion_output_qty').eq('company_id', cId).gte('date', firstDayOfMonth.toISOString()),
-            supabase.from('production_batches').select('extrusion_output_qty').eq('company_id', cId).gte('date', firstDayOfPrevMonth.toISOString()).lte('date', lastDayOfPrevMonth.toISOString()),
             supabase.from('customer_collections').select('amount').eq('company_id', cId),
             supabase.from('supplier_payments').select('amount').eq('company_id', cId),
             supabase.from('petty_cash').select('amount').eq('company_id', cId),
@@ -72,8 +84,8 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         const prevMonthSales = (prevSales || []).reduce((sum, item) => sum + Number(item.net_amount), 0);
         const salesTrend = prevMonthSales === 0 ? 100 : (((totalSales - prevMonthSales) / prevMonthSales) * 100);
 
-        const totalProduction = (curProduction || []).reduce((sum, item) => sum + Number(item.extrusion_output_qty), 0);
-        const prevMonthProduction = (prevProduction || []).reduce((sum, item) => sum + Number(item.extrusion_output_qty), 0);
+        const totalProduction = curProduction.reduce((sum, item) => sum + Number(item.quantity), 0);
+        const prevMonthProduction = prevProduction.reduce((sum, item) => sum + Number(item.quantity), 0);
         const productionTrend = prevMonthProduction === 0 ? 0 : (((totalProduction - prevMonthProduction) / prevMonthProduction) * 100);
 
         const totalCollections = (collections || []).reduce((sum, item) => sum + Number(item.amount), 0);
@@ -87,7 +99,6 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         const chartDataMap = new Map<string, any>();
         const attendanceMap = new Map<string, any>();
 
-        // Helper to get YYYY-MM-DD in local time
         const toDateStr = (date: Date) => {
             return date.getFullYear() + '-' + 
                    String(date.getMonth() + 1).padStart(2, '0') + '-' + 
@@ -104,7 +115,6 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
             attendanceMap.set(sortKey, { date: dStr, sortKey, present: 0, absent: 0 });
         }
 
-        // Fill revenue data
         [...(dailySales || []), ...(dailyCollections || [])].forEach(item => {
             const dateVal = (item as any).invoice_date || (item as any).collection_date;
             const sortKey = typeof dateVal === 'string' ? dateVal.split('T')[0] : toDateStr(new Date(dateVal));
@@ -116,7 +126,6 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
             }
         });
 
-        // Fill attendance data
         (attendance || []).forEach(att => {
             const sortKey = typeof att.date === 'string' ? att.date.split('T')[0] : toDateStr(new Date(att.date));
             if (attendanceMap.has(sortKey)) {
@@ -132,7 +141,6 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         const todayStr = toDateStr(new Date());
         const presentToday = attendanceMap.get(todayStr)?.present || 0;
 
-        // Low stock alerts
         const lowStock = (stockSummary || []).filter(s => s.balance < 100).map(s => ({
             name: s.rm_name,
             balance: s.balance,
@@ -156,13 +164,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
                 recentActivity: {
                     invoices: recentInvoices,
                     orders: recentOrders,
-                    production: (recentBatches && recentBatches.length > 0) ? recentBatches : [
-                        { batch_number: 'BATCH-2024-A1', extrusion_output_qty: 1250, date: new Date().toISOString(), finished_products: { product_name: 'Heavy Duty Poly' } },
-                        { batch_number: 'BATCH-2024-A2', extrusion_output_qty: 850, date: new Date().toISOString(), finished_products: { product_name: 'Printed LDPE' } },
-                        { batch_number: 'BATCH-2024-B1', extrusion_output_qty: 2100, date: new Date().toISOString(), finished_products: { product_name: 'Clear Liners' } },
-                        { batch_number: 'BATCH-2024-B2', extrusion_output_qty: 1600, date: new Date().toISOString(), finished_products: { product_name: 'Recycled Green' } },
-                        { batch_number: 'BATCH-2024-C1', extrusion_output_qty: 920, date: new Date().toISOString(), finished_products: { product_name: 'Small Pouches' } }
-                    ]
+                    production: recentBatches
                 },
                 alerts: lowStock,
                 chartData,
