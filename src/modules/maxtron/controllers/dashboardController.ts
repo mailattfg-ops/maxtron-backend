@@ -100,9 +100,9 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         const attendanceMap = new Map<string, any>();
 
         const toDateStr = (date: Date) => {
-            return date.getFullYear() + '-' + 
-                   String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                   String(date.getDate()).padStart(2, '0');
+            return date.getFullYear() + '-' +
+                String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                String(date.getDate()).padStart(2, '0');
         };
 
         for (let i = 0; i < 7; i++) {
@@ -118,7 +118,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         [...(dailySales || []), ...(dailyCollections || [])].forEach(item => {
             const dateVal = (item as any).invoice_date || (item as any).collection_date;
             const sortKey = typeof dateVal === 'string' ? dateVal.split('T')[0] : toDateStr(new Date(dateVal));
-            
+
             if (chartDataMap.has(sortKey)) {
                 const entry = chartDataMap.get(sortKey);
                 if ((item as any).net_amount) entry.sales += Number((item as any).net_amount);
