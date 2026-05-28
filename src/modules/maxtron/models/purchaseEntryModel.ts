@@ -8,7 +8,7 @@ export const PurchaseEntryModel = {
             supplier_master!supplier_id(supplier_name, supplier_code),
             rm_orders(order_number),
             purchase_entry_items(
-                id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount,
+                id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount, hsn_code,
                 raw_materials!rm_id(rm_name, rm_code)
             )
         `);
@@ -28,7 +28,7 @@ export const PurchaseEntryModel = {
                 supplier_master!supplier_id(supplier_name, supplier_code),
                 rm_orders(order_number, order_date),
                 purchase_entry_items(
-                    id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount,
+                    id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount, hsn_code,
                     raw_materials!rm_id(rm_name, rm_code)
                 )
             `)
@@ -101,11 +101,32 @@ export const PurchaseEntryModel = {
             });
 
             // Force recalculation of total_amount
-            entryInfo.total_amount = calculateTotal(items);
+            const recalculatedTotal = calculateTotal(items);
+            if (entryInfo.is_round_off) {
+                const roundedTotal = Math.round(Number(recalculatedTotal));
+                entryInfo.total_amount = roundedTotal;
+                entryInfo.round_off = roundedTotal - Number(recalculatedTotal);
+            } else {
+                entryInfo.total_amount = Number(recalculatedTotal);
+                entryInfo.round_off = 0;
+            }
         }
 
-        if (!entryInfo.total_amount) {
-            entryInfo.total_amount = calculateTotal(items);
+        if (entryInfo.total_amount === undefined || entryInfo.total_amount === null || entryInfo.total_amount === '') {
+            const calculatedTotal = calculateTotal(items);
+            if (entryInfo.is_round_off) {
+                const roundedTotal = Math.round(Number(calculatedTotal));
+                entryInfo.total_amount = roundedTotal;
+                entryInfo.round_off = roundedTotal - Number(calculatedTotal);
+            } else {
+                entryInfo.total_amount = Number(calculatedTotal);
+                entryInfo.round_off = 0;
+            }
+        } else {
+            if (entryInfo.is_round_off && (entryInfo.round_off === undefined || entryInfo.round_off === null)) {
+                const calculatedTotal = calculateTotal(items);
+                entryInfo.round_off = Number(entryInfo.total_amount) - calculatedTotal;
+            }
         }
 
         const { data: entry, error: entryErr } = await supabase
@@ -169,7 +190,15 @@ export const PurchaseEntryModel = {
         }
 
         if (items) {
-            entryInfo.total_amount = items.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0) + Number(entryInfo.unloading_charges || 0);
+            const unroundedTotal = items.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0) + Number(entryInfo.unloading_charges || 0);
+            if (entryInfo.is_round_off) {
+                const roundedTotal = Math.round(unroundedTotal);
+                entryInfo.total_amount = roundedTotal;
+                entryInfo.round_off = roundedTotal - unroundedTotal;
+            } else {
+                entryInfo.total_amount = unroundedTotal;
+                entryInfo.round_off = 0;
+            }
         }
 
         const { data: entry, error: entryErr } = await supabase
