@@ -736,6 +736,8 @@ async function runMigrations() {
         vehicle_number VARCHAR(50),
         unloading_charges NUMERIC(15, 2) DEFAULT 0,
         total_amount NUMERIC(15, 2) DEFAULT 0,
+        round_off NUMERIC(15, 2) DEFAULT 0,
+        is_round_off BOOLEAN DEFAULT FALSE,
         remarks TEXT,
         company_id UUID,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -759,6 +761,7 @@ async function runMigrations() {
         received_quantity NUMERIC(15, 3) NOT NULL,
         rate NUMERIC(15, 2) NOT NULL,
         amount NUMERIC(15, 2) GENERATED ALWAYS AS (received_quantity * rate) STORED,
+        hsn_code VARCHAR(100) DEFAULT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT purchase_entry_items_entry_id_fkey FOREIGN KEY (entry_id) REFERENCES purchase_entries(id) ON DELETE CASCADE,
         CONSTRAINT purchase_entry_items_rm_id_fkey FOREIGN KEY (rm_id) REFERENCES raw_materials(id) ON DELETE CASCADE
