@@ -38,13 +38,18 @@ async function runMigrations() {
 
     console.log('2️⃣ Inserting default user_types...');
     await client.query(`
-      INSERT INTO user_types (id, name, description) VALUES
-        (uuid_generate_v4(), 'admin', 'System Administrator with full access'),
-        (uuid_generate_v4(), 'hr', 'Human Resources and Payroll manager'),
-        (uuid_generate_v4(), 'sales', 'Sales representative and order manager'),
-        (uuid_generate_v4(), 'production', 'Production floor and machine scheduler'),
-        (uuid_generate_v4(), 'finance', 'Accountant and finance module manager')
-      ON CONFLICT (name) DO NOTHING; -- Prevents errors if roles already exist
+      INSERT INTO user_types (id, name, description)
+      SELECT uuid_generate_v4(), val.name, val.description
+      FROM (VALUES
+        ('admin', 'System Administrator with full access'),
+        ('hr', 'Human Resources and Payroll manager'),
+        ('sales', 'Sales representative and order manager'),
+        ('production', 'Production floor and machine scheduler'),
+        ('finance', 'Accountant and finance module manager')
+      ) AS val(name, description)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM user_types WHERE user_types.name = val.name AND user_types.company_id IS NULL
+      );
     `);
 
     console.log('3️⃣ Creating Employee Master tables (Categories & Departments)...');
@@ -91,20 +96,31 @@ async function runMigrations() {
     console.log('3.5️⃣ Seeding Categories...');
     await client.query(`
       -- Global standard categories (company_id is NULL)
-      INSERT INTO employee_categories(category_name, company_id) VALUES
-      ('Management', NULL),
-      ('Staff - Technical', NULL),
-      ('Staff - Non-Technical', NULL),
-      ('Worker - Skilled', NULL),
-      ('Worker - Unskilled', NULL)
-      ON CONFLICT(category_name, company_id) WHERE company_id IS NULL DO NOTHING;
+      INSERT INTO employee_categories(category_name, company_id)
+      SELECT val.category_name, val.company_id::UUID
+      FROM (VALUES
+        ('Management', NULL),
+        ('Staff - Technical', NULL),
+        ('Staff - Non-Technical', NULL),
+        ('Worker - Skilled', NULL),
+        ('Worker - Unskilled', NULL)
+      ) AS val(category_name, company_id)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM employee_categories 
+        WHERE employee_categories.category_name = val.category_name 
+          AND employee_categories.company_id IS NULL
+      );
 
       -- Company specific categories (cloned for each company as requested)
       INSERT INTO employee_categories(category_name, company_id)
       SELECT cats.name, c.id
       FROM (VALUES ('Management'), ('Staff - Technical'), ('Staff - Non-Technical'), ('Worker - Skilled'), ('Worker - Unskilled')) AS cats(name)
       CROSS JOIN companies c
-      ON CONFLICT(category_name, company_id) WHERE company_id IS NOT NULL DO NOTHING;
+      WHERE NOT EXISTS (
+        SELECT 1 FROM employee_categories 
+        WHERE employee_categories.category_name = cats.name 
+          AND employee_categories.company_id = c.id
+      );
     `);
 
     console.log('4️⃣ Clean up dependencies to apply new structural updates...');
@@ -397,6 +413,7 @@ async function runMigrations() {
         grade VARCHAR(100),
         availability VARCHAR(100),
         stock_threshold NUMERIC(15, 2) DEFAULT 0,
+        hsn_code VARCHAR(100) DEFAULT NULL,
         company_id UUID REFERENCES companies(id),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -680,6 +697,8 @@ async function runMigrations() {
         supplier_id UUID,
         expected_delivery_date DATE,
         total_amount NUMERIC(15, 2) DEFAULT 0,
+        round_off NUMERIC(15, 2) DEFAULT 0,
+        is_round_off BOOLEAN DEFAULT FALSE,
         status VARCHAR(50) DEFAULT 'PENDING',
         remarks TEXT,
         company_id UUID,
@@ -689,24 +708,11 @@ async function runMigrations() {
       );
     `);
 
-    // Cleanup: rm_orders now created with all columns correctly
-    /*
     await client.query(`
-      ALTER TABLE rm_orders ADD COLUMN IF NOT EXISTS supplier_id UUID REFERENCES supplier_master(id) ON DELETE SET NULL;
-      ALTER TABLE rm_orders ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES companies(id);
-      ALTER TABLE rm_orders ALTER COLUMN order_number SET DEFAULT 'RM-ORD-' || to_char(CURRENT_DATE, 'YYMM') || '-' || LPAD(nextval('order_no_seq')::text, 4, '0');
+      ALTER TABLE rm_orders 
+        ADD COLUMN IF NOT EXISTS round_off NUMERIC(15, 2) DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS is_round_off BOOLEAN DEFAULT FALSE;
     `);
-
-    // Add explicit FK if it doesn't exist (names can vary if auto-generated)
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_rm_orders_supplier') THEN
-          ALTER TABLE rm_orders ADD CONSTRAINT fk_rm_orders_supplier FOREIGN KEY (supplier_id) REFERENCES supplier_master(id);
-        END IF;
-      END $$;
-    `);
-    */
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS rm_order_items (
@@ -761,7 +767,6 @@ async function runMigrations() {
         received_quantity NUMERIC(15, 3) NOT NULL,
         rate NUMERIC(15, 2) NOT NULL,
         amount NUMERIC(15, 2) GENERATED ALWAYS AS (received_quantity * rate) STORED,
-        hsn_code VARCHAR(100) DEFAULT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT purchase_entry_items_entry_id_fkey FOREIGN KEY (entry_id) REFERENCES purchase_entries(id) ON DELETE CASCADE,
         CONSTRAINT purchase_entry_items_rm_id_fkey FOREIGN KEY (rm_id) REFERENCES raw_materials(id) ON DELETE CASCADE

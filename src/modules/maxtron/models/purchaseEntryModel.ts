@@ -8,8 +8,8 @@ export const PurchaseEntryModel = {
             supplier_master!supplier_id(supplier_name, supplier_code),
             rm_orders(order_number),
             purchase_entry_items(
-                id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount, hsn_code,
-                raw_materials!rm_id(rm_name, rm_code)
+                id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount,
+                raw_materials!rm_id(rm_name, rm_code, hsn_code)
             )
         `);
         if (companyId) {
@@ -28,8 +28,8 @@ export const PurchaseEntryModel = {
                 supplier_master!supplier_id(supplier_name, supplier_code),
                 rm_orders(order_number, order_date),
                 purchase_entry_items(
-                    id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount, hsn_code,
-                    raw_materials!rm_id(rm_name, rm_code)
+                    id, rm_id, ordered_quantity, received_quantity, rate, amount, gst_percent, gst_amount,
+                    raw_materials!rm_id(rm_name, rm_code, hsn_code)
                 )
             `)
             .eq('id', id)
