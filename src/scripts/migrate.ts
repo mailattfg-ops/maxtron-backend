@@ -833,6 +833,16 @@ async function runMigrations() {
     `);
     await client.query('CREATE INDEX IF NOT EXISTS idx_announcements_tenant_active ON announcements(tenant, active);');
 
+    console.log('9.11️⃣ Disabling Row Level Security (RLS) on all public tables...');
+    const tablesRes = await client.query(`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public';
+    `);
+    for (const row of tablesRes.rows) {
+      await client.query(`ALTER TABLE "${row.tablename}" DISABLE ROW LEVEL SECURITY;`);
+    }
+
     console.log('🔟 Refreshing PostgREST schema cache...');
     await client.query("NOTIFY pgrst, 'reload schema';");
 
