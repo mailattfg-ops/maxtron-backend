@@ -150,36 +150,42 @@ async function runMigrations() {
     console.log('4.5️⃣ Creating users table (Unified with Employee data)...');
     await client.query(`
       CREATE TABLE IF NOT EXISTS users(
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      type UUID NOT NULL,
-      employee_code VARCHAR(50) UNIQUE NOT NULL DEFAULT 'EMP-' || nextval('employee_code_seq')::text,
-      name TEXT NOT NULL,
-      username TEXT UNIQUE NOT NULL, --email used for login
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        type UUID NOT NULL,
+        employee_code VARCHAR(50) UNIQUE NOT NULL DEFAULT 'EMP-' || nextval('employee_code_seq')::text,
+        name TEXT NOT NULL,
+        username TEXT UNIQUE NOT NULL, --email used for login
         password TEXT NOT NULL, --hashed using bcrypt
         address TEXT, --communication address
         permanent_address TEXT,
-      date_of_birth DATE,
+        date_of_birth DATE,
         guarantor_name VARCHAR(150),
-          is_married BOOLEAN DEFAULT FALSE,
-          family_details TEXT,
-          category_id UUID,
-          company_id UUID,
-          has_license BOOLEAN DEFAULT FALSE,
-          has_passport BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_married BOOLEAN DEFAULT FALSE,
+        family_details TEXT,
+        category_id UUID,
+        company_id UUID,
+        has_license BOOLEAN DEFAULT FALSE,
+        has_passport BOOLEAN DEFAULT FALSE,
+        phone TEXT,
+        aadhaar VARCHAR(100),
+        basic_salary NUMERIC(15, 2) DEFAULT 0,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        has_insurance BOOLEAN DEFAULT FALSE,
+        branch_id UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-                  --Foreign Key Connections
+        --Foreign Key Connections
         CONSTRAINT fk_profile_type 
             FOREIGN KEY(type) 
             REFERENCES user_types(id)
             ON DELETE RESTRICT,
 
-      CONSTRAINT fk_profile_category 
+        CONSTRAINT fk_profile_category 
             FOREIGN KEY(category_id) 
             REFERENCES employee_categories(id)
             ON DELETE SET NULL,
 
-      CONSTRAINT fk_company 
+        CONSTRAINT fk_company 
             FOREIGN KEY(company_id) 
             REFERENCES companies(id)
             ON DELETE SET NULL
