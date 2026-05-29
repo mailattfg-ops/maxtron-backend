@@ -402,7 +402,7 @@ async function runMigrations() {
     console.log('8️⃣ Inserting default admin user...');
     await client.query(`
       INSERT INTO users(type, name, username, password, address, employee_code)
-      SELECT id, 'System Admin', 'admin@maxtron.com', 'password', 'Maxtron HQ, Server Room 1', 'SYS-ADMIN-01'
+      SELECT id, 'System Admin', 'admin@maxtron.com', '$2b$10$d8OgKHsj1xpvu6wdrN/cc.26v8lE2TVTX3/hIeeHf5E5wGklxKaaC', 'Maxtron HQ, Server Room 1', 'SYS-ADMIN-01'
       FROM user_types WHERE name = 'admin'
       ON CONFLICT(username) DO NOTHING;
     `);
