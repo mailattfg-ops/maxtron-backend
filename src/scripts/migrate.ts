@@ -363,6 +363,7 @@ async function runMigrations() {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
       company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+      customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
       customer_name VARCHAR(255) NOT NULL,
       location TEXT,
       visit_date DATE NOT NULL,
@@ -370,6 +371,12 @@ async function runMigrations() {
       time_out TIME,
       purpose TEXT,
       outcome TEXT,
+      feedback TEXT,
+      is_quotation BOOLEAN DEFAULT FALSE,
+      quotation_items JSONB DEFAULT '[]'::jsonb,
+      quotation_delivery_date DATE,
+      quotation_status VARCHAR(50) DEFAULT 'Pending',
+      probability VARCHAR(20) DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `);
@@ -420,6 +427,7 @@ async function runMigrations() {
         availability VARCHAR(100),
         stock_threshold NUMERIC(15, 2) DEFAULT 0,
         hsn_code VARCHAR(100) DEFAULT NULL,
+        rm_type_code VARCHAR(255) DEFAULT NULL,
         company_id UUID REFERENCES companies(id),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -560,6 +568,9 @@ async function runMigrations() {
         total_value NUMERIC(15, 2) DEFAULT 0, -- Taxable Value
         tax_amount NUMERIC(15, 2) DEFAULT 0,
         net_amount NUMERIC(15, 2) DEFAULT 0, -- Total inclusive of tax
+        section_type VARCHAR(50) DEFAULT 'customer order',
+        round_off NUMERIC(15, 2) DEFAULT 0,
+        is_round_off BOOLEAN DEFAULT FALSE,
         remarks TEXT,
         company_id UUID REFERENCES companies(id),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
