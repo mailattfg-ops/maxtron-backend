@@ -8,6 +8,7 @@ export const VehicleLogModel = {
                 *,
                 vehicle:vehicle_id(registration_number),
                 driver:driver_id(name),
+                supervisor:supervisor_id(name),
                 route:route_id(
                     route_name,
                     route_code,

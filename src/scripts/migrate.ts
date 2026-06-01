@@ -38,13 +38,18 @@ async function runMigrations() {
 
     console.log('2️⃣ Inserting default user_types...');
     await client.query(`
-      INSERT INTO user_types (id, name, description) VALUES
-        (uuid_generate_v4(), 'admin', 'System Administrator with full access'),
-        (uuid_generate_v4(), 'hr', 'Human Resources and Payroll manager'),
-        (uuid_generate_v4(), 'sales', 'Sales representative and order manager'),
-        (uuid_generate_v4(), 'production', 'Production floor and machine scheduler'),
-        (uuid_generate_v4(), 'finance', 'Accountant and finance module manager')
-      ON CONFLICT (name) DO NOTHING; -- Prevents errors if roles already exist
+      INSERT INTO user_types (id, name, description)
+      SELECT uuid_generate_v4(), val.name, val.description
+      FROM (VALUES
+        ('admin', 'System Administrator with full access'),
+        ('hr', 'Human Resources and Payroll manager'),
+        ('sales', 'Sales representative and order manager'),
+        ('production', 'Production floor and machine scheduler'),
+        ('finance', 'Accountant and finance module manager')
+      ) AS val(name, description)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM user_types WHERE user_types.name = val.name AND user_types.company_id IS NULL
+      );
     `);
 
     console.log('3️⃣ Creating Employee Master tables (Categories & Departments)...');
@@ -91,20 +96,31 @@ async function runMigrations() {
     console.log('3.5️⃣ Seeding Categories...');
     await client.query(`
       -- Global standard categories (company_id is NULL)
-      INSERT INTO employee_categories(category_name, company_id) VALUES
-      ('Management', NULL),
-      ('Staff - Technical', NULL),
-      ('Staff - Non-Technical', NULL),
-      ('Worker - Skilled', NULL),
-      ('Worker - Unskilled', NULL)
-      ON CONFLICT(category_name, company_id) WHERE company_id IS NULL DO NOTHING;
+      INSERT INTO employee_categories(category_name, company_id)
+      SELECT val.category_name, val.company_id::UUID
+      FROM (VALUES
+        ('Management', NULL),
+        ('Staff - Technical', NULL),
+        ('Staff - Non-Technical', NULL),
+        ('Worker - Skilled', NULL),
+        ('Worker - Unskilled', NULL)
+      ) AS val(category_name, company_id)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM employee_categories 
+        WHERE employee_categories.category_name = val.category_name 
+          AND employee_categories.company_id IS NULL
+      );
 
       -- Company specific categories (cloned for each company as requested)
       INSERT INTO employee_categories(category_name, company_id)
       SELECT cats.name, c.id
       FROM (VALUES ('Management'), ('Staff - Technical'), ('Staff - Non-Technical'), ('Worker - Skilled'), ('Worker - Unskilled')) AS cats(name)
       CROSS JOIN companies c
-      ON CONFLICT(category_name, company_id) WHERE company_id IS NOT NULL DO NOTHING;
+      WHERE NOT EXISTS (
+        SELECT 1 FROM employee_categories 
+        WHERE employee_categories.category_name = cats.name 
+          AND employee_categories.company_id = c.id
+      );
     `);
 
     console.log('4️⃣ Clean up dependencies to apply new structural updates...');
@@ -134,36 +150,42 @@ async function runMigrations() {
     console.log('4.5️⃣ Creating users table (Unified with Employee data)...');
     await client.query(`
       CREATE TABLE IF NOT EXISTS users(
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      type UUID NOT NULL,
-      employee_code VARCHAR(50) UNIQUE NOT NULL DEFAULT 'EMP-' || nextval('employee_code_seq')::text,
-      name TEXT NOT NULL,
-      username TEXT UNIQUE NOT NULL, --email used for login
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        type UUID NOT NULL,
+        employee_code VARCHAR(50) UNIQUE NOT NULL DEFAULT 'EMP-' || nextval('employee_code_seq')::text,
+        name TEXT NOT NULL,
+        username TEXT UNIQUE NOT NULL, --email used for login
         password TEXT NOT NULL, --hashed using bcrypt
         address TEXT, --communication address
         permanent_address TEXT,
-      date_of_birth DATE,
+        date_of_birth DATE,
         guarantor_name VARCHAR(150),
-          is_married BOOLEAN DEFAULT FALSE,
-          family_details TEXT,
-          category_id UUID,
-          company_id UUID,
-          has_license BOOLEAN DEFAULT FALSE,
-          has_passport BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_married BOOLEAN DEFAULT FALSE,
+        family_details TEXT,
+        category_id UUID,
+        company_id UUID,
+        has_license BOOLEAN DEFAULT FALSE,
+        has_passport BOOLEAN DEFAULT FALSE,
+        phone TEXT,
+        aadhaar VARCHAR(100),
+        basic_salary NUMERIC(15, 2) DEFAULT 0,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        has_insurance BOOLEAN DEFAULT FALSE,
+        branch_id UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-                  --Foreign Key Connections
+        --Foreign Key Connections
         CONSTRAINT fk_profile_type 
             FOREIGN KEY(type) 
             REFERENCES user_types(id)
             ON DELETE RESTRICT,
 
-      CONSTRAINT fk_profile_category 
+        CONSTRAINT fk_profile_category 
             FOREIGN KEY(category_id) 
             REFERENCES employee_categories(id)
             ON DELETE SET NULL,
 
-      CONSTRAINT fk_company 
+        CONSTRAINT fk_company 
             FOREIGN KEY(company_id) 
             REFERENCES companies(id)
             ON DELETE SET NULL
@@ -341,6 +363,7 @@ async function runMigrations() {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
       company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+      customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
       customer_name VARCHAR(255) NOT NULL,
       location TEXT,
       visit_date DATE NOT NULL,
@@ -348,6 +371,12 @@ async function runMigrations() {
       time_out TIME,
       purpose TEXT,
       outcome TEXT,
+      feedback TEXT,
+      is_quotation BOOLEAN DEFAULT FALSE,
+      quotation_items JSONB DEFAULT '[]'::jsonb,
+      quotation_delivery_date DATE,
+      quotation_status VARCHAR(50) DEFAULT 'Pending',
+      probability VARCHAR(20) DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `);
@@ -380,7 +409,7 @@ async function runMigrations() {
     console.log('8️⃣ Inserting default admin user...');
     await client.query(`
       INSERT INTO users(type, name, username, password, address, employee_code)
-      SELECT id, 'System Admin', 'admin@maxtron.com', 'password', 'Maxtron HQ, Server Room 1', 'SYS-ADMIN-01'
+      SELECT id, 'System Admin', 'admin@maxtron.com', '$2b$10$d8OgKHsj1xpvu6wdrN/cc.26v8lE2TVTX3/hIeeHf5E5wGklxKaaC', 'Maxtron HQ, Server Room 1', 'SYS-ADMIN-01'
       FROM user_types WHERE name = 'admin'
       ON CONFLICT(username) DO NOTHING;
     `);
@@ -397,6 +426,8 @@ async function runMigrations() {
         grade VARCHAR(100),
         availability VARCHAR(100),
         stock_threshold NUMERIC(15, 2) DEFAULT 0,
+        hsn_code VARCHAR(100) DEFAULT NULL,
+        rm_type_code VARCHAR(255) DEFAULT NULL,
         company_id UUID REFERENCES companies(id),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -537,6 +568,9 @@ async function runMigrations() {
         total_value NUMERIC(15, 2) DEFAULT 0, -- Taxable Value
         tax_amount NUMERIC(15, 2) DEFAULT 0,
         net_amount NUMERIC(15, 2) DEFAULT 0, -- Total inclusive of tax
+        section_type VARCHAR(50) DEFAULT 'customer order',
+        round_off NUMERIC(15, 2) DEFAULT 0,
+        is_round_off BOOLEAN DEFAULT FALSE,
         remarks TEXT,
         company_id UUID REFERENCES companies(id),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -680,6 +714,8 @@ async function runMigrations() {
         supplier_id UUID,
         expected_delivery_date DATE,
         total_amount NUMERIC(15, 2) DEFAULT 0,
+        round_off NUMERIC(15, 2) DEFAULT 0,
+        is_round_off BOOLEAN DEFAULT FALSE,
         status VARCHAR(50) DEFAULT 'PENDING',
         remarks TEXT,
         company_id UUID,
@@ -689,24 +725,11 @@ async function runMigrations() {
       );
     `);
 
-    // Cleanup: rm_orders now created with all columns correctly
-    /*
     await client.query(`
-      ALTER TABLE rm_orders ADD COLUMN IF NOT EXISTS supplier_id UUID REFERENCES supplier_master(id) ON DELETE SET NULL;
-      ALTER TABLE rm_orders ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES companies(id);
-      ALTER TABLE rm_orders ALTER COLUMN order_number SET DEFAULT 'RM-ORD-' || to_char(CURRENT_DATE, 'YYMM') || '-' || LPAD(nextval('order_no_seq')::text, 4, '0');
+      ALTER TABLE rm_orders 
+        ADD COLUMN IF NOT EXISTS round_off NUMERIC(15, 2) DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS is_round_off BOOLEAN DEFAULT FALSE;
     `);
-
-    // Add explicit FK if it doesn't exist (names can vary if auto-generated)
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_rm_orders_supplier') THEN
-          ALTER TABLE rm_orders ADD CONSTRAINT fk_rm_orders_supplier FOREIGN KEY (supplier_id) REFERENCES supplier_master(id);
-        END IF;
-      END $$;
-    `);
-    */
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS rm_order_items (
@@ -761,7 +784,6 @@ async function runMigrations() {
         received_quantity NUMERIC(15, 3) NOT NULL,
         rate NUMERIC(15, 2) NOT NULL,
         amount NUMERIC(15, 2) GENERATED ALWAYS AS (received_quantity * rate) STORED,
-        hsn_code VARCHAR(100) DEFAULT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT purchase_entry_items_entry_id_fkey FOREIGN KEY (entry_id) REFERENCES purchase_entries(id) ON DELETE CASCADE,
         CONSTRAINT purchase_entry_items_rm_id_fkey FOREIGN KEY (rm_id) REFERENCES raw_materials(id) ON DELETE CASCADE
@@ -821,6 +843,16 @@ async function runMigrations() {
       );
     `);
     await client.query('CREATE INDEX IF NOT EXISTS idx_announcements_tenant_active ON announcements(tenant, active);');
+
+    console.log('9.11️⃣ Disabling Row Level Security (RLS) on all public tables...');
+    const tablesRes = await client.query(`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public';
+    `);
+    for (const row of tablesRes.rows) {
+      await client.query(`ALTER TABLE "${row.tablename}" DISABLE ROW LEVEL SECURITY;`);
+    }
 
     console.log('🔟 Refreshing PostgREST schema cache...');
     await client.query("NOTIFY pgrst, 'reload schema';");
