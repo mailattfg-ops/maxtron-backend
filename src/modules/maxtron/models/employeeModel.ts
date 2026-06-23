@@ -84,9 +84,15 @@ export const EmployeeModel = {
             delete dataToInsert.employee_code;
         }
 
-        if (dataToInsert.password) {
+        // Convert empty credentials/role fields to null
+        if (dataToInsert.username === '') dataToInsert.username = null;
+        if (dataToInsert.type === '') dataToInsert.type = null;
+
+        if (dataToInsert.password && dataToInsert.password.trim() !== '') {
             const salt = await bcrypt.genSalt(10);
             dataToInsert.password = await bcrypt.hash(dataToInsert.password, salt);
+        } else {
+            delete dataToInsert.password;
         }
 
         const { data: user, error } = await supabase
@@ -154,6 +160,11 @@ export const EmployeeModel = {
         } = updates;
 
         let dataToUpdate = { ...baseUserData };
+        
+        // Convert empty credentials/role fields to null
+        if (dataToUpdate.username === '') dataToUpdate.username = null;
+        if (dataToUpdate.type === '') dataToUpdate.type = null;
+
         if (dataToUpdate.password) {
             const salt = await bcrypt.genSalt(10);
             dataToUpdate.password = await bcrypt.hash(dataToUpdate.password, salt);

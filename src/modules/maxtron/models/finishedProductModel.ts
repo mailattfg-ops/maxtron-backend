@@ -11,6 +11,7 @@ export interface FinishedProduct {
     company_id: string;
     description?: string;
     stock_threshold?: number;
+    hsn_code?: string;
     opening_stock?: number;
     created_at?: string;
     updated_at?: string;

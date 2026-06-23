@@ -10,6 +10,8 @@ export const CollectionModel = {
 
         if (companyId) query = query.eq('company_id', companyId);
         if (filters?.date) query = query.eq('collection_date', filters.date);
+        if (filters?.date_from) query = query.gte('collection_date', filters.date_from);
+        if (filters?.date_to) query = query.lte('collection_date', filters.date_to);
         if (filters?.route_id) query = query.eq('route_id', filters.route_id);
 
         const { data, error } = await query.order('collection_date', { ascending: false });
@@ -45,10 +47,17 @@ export const CollectionModel = {
 
     // Create a whole collection batch (Header + Multiple Entries)
     saveCollectionBatch: async (headerData: any, entriesData: any[]) => {
+        // Sanitize header time fields to avoid empty string database errors
+        const sanitizedHeader = {
+            ...headerData,
+            start_time: headerData.start_time === '' ? null : headerData.start_time,
+            end_time: headerData.end_time === '' ? null : headerData.end_time
+        };
+
         // Step 1: Save Header
         const { data: header, error: hError } = await supabase
             .from('keil_collection_headers')
-            .insert([headerData])
+            .insert([sanitizedHeader])
             .select()
             .single();
 

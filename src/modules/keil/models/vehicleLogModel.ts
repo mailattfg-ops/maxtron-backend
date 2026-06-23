@@ -6,17 +6,16 @@ export const VehicleLogModel = {
             .from('keil_vehicle_logs')
             .select(`
                 *,
-                vehicle:vehicle_id(registration_number),
-                driver:driver_id(name),
-                supervisor:supervisor_id(name),
-                route:route_id(
+                vehicle:keil_vehicles!keil_vehicle_logs_vehicle_id_fkey(registration_number),
+                supervisor:users!keil_vehicle_logs_supervisor_id_fkey(name),
+                route:keil_routes!keil_vehicle_logs_route_id_fkey(
                     route_name,
-                    route_code,
-                    company:company_id(company_name)
+                    route_code
                 )
             `)
             .eq('company_id', companyId)
             .order('log_date', { ascending: false });
+
 
         if (filters?.vehicle_id) {
             query = query.eq('vehicle_id', filters.vehicle_id);

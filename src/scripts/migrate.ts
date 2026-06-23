@@ -151,11 +151,11 @@ async function runMigrations() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS users(
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        type UUID NOT NULL,
+        type UUID,
         employee_code VARCHAR(50) UNIQUE NOT NULL DEFAULT 'EMP-' || nextval('employee_code_seq')::text,
         name TEXT NOT NULL,
-        username TEXT UNIQUE NOT NULL, --email used for login
-        password TEXT NOT NULL, --hashed using bcrypt
+        username TEXT UNIQUE, --email used for login
+        password TEXT, --hashed using bcrypt
         address TEXT, --communication address
         permanent_address TEXT,
         date_of_birth DATE,
@@ -172,6 +172,11 @@ async function runMigrations() {
         is_deleted BOOLEAN DEFAULT FALSE,
         has_insurance BOOLEAN DEFAULT FALSE,
         branch_id UUID,
+        bank_account_no VARCHAR(100),
+        bank_ifsc VARCHAR(50),
+        bank_branch VARCHAR(150),
+        bank_account_type VARCHAR(50),
+        bank_name VARCHAR(150),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
         --Foreign Key Connections
@@ -447,6 +452,7 @@ async function runMigrations() {
         avg_count_per_kg NUMERIC(10, 2),
         description TEXT,
         stock_threshold NUMERIC(15, 2) DEFAULT 0,
+        hsn_code VARCHAR(100) DEFAULT NULL,
         company_id UUID REFERENCES companies(id),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -843,6 +849,15 @@ async function runMigrations() {
       );
     `);
     await client.query('CREATE INDEX IF NOT EXISTS idx_announcements_tenant_active ON announcements(tenant, active);');
+
+    console.log('9.10b️⃣ Checking and adding bank detail columns to users table if they do not exist...');
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_account_no VARCHAR(100);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_ifsc VARCHAR(50);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_branch VARCHAR(150);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_account_type VARCHAR(50);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name VARCHAR(150);
+    `);
 
     console.log('9.11️⃣ Disabling Row Level Security (RLS) on all public tables...');
     const tablesRes = await client.query(`

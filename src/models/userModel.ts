@@ -17,6 +17,11 @@ export interface User {
     basic_salary?: number;
     company_id?: string | null;
     is_deleted?: boolean;
+    bank_account_no?: string | null;
+    bank_ifsc?: string | null;
+    bank_branch?: string | null;
+    bank_account_type?: string | null;
+    bank_name?: string | null;
     created_at?: string;
 }
 
