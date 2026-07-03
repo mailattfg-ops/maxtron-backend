@@ -154,7 +154,7 @@ async function runMigrations() {
         type UUID,
         employee_code VARCHAR(50) UNIQUE NOT NULL DEFAULT 'EMP-' || nextval('employee_code_seq')::text,
         name TEXT NOT NULL,
-        username TEXT UNIQUE, --email used for login
+        username TEXT, --email used for login
         password TEXT, --hashed using bcrypt
         address TEXT, --communication address
         permanent_address TEXT,
@@ -195,6 +195,9 @@ async function runMigrations() {
             REFERENCES companies(id)
             ON DELETE SET NULL
       );
+      CREATE UNIQUE INDEX IF NOT EXISTS users_username_active_idx 
+      ON users (username) 
+      WHERE (is_deleted = false AND username IS NOT NULL);
     `);
 
 
@@ -579,6 +582,19 @@ async function runMigrations() {
         is_round_off BOOLEAN DEFAULT FALSE,
         remarks TEXT,
         company_id UUID REFERENCES companies(id),
+        transporter_id VARCHAR(100) DEFAULT NULL,
+        transporter_name VARCHAR(255) DEFAULT NULL,
+        trans_distance NUMERIC(10, 2) DEFAULT NULL,
+        trans_mode VARCHAR(50) DEFAULT NULL,
+        vehicle_no VARCHAR(50) DEFAULT NULL,
+        vehicle_type VARCHAR(50) DEFAULT NULL,
+        trans_doc_no VARCHAR(100) DEFAULT NULL,
+        trans_doc_date DATE DEFAULT NULL,
+        ewb_status VARCHAR(50) DEFAULT 'PENDING',
+        ewb_no VARCHAR(50) DEFAULT NULL,
+        ewb_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+        ewb_valid_till TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+        ewb_error TEXT DEFAULT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
