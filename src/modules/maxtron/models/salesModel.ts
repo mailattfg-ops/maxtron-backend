@@ -23,9 +23,9 @@ export const SalesModel = {
     createOrder: async (orderData: any) => {
         const { items, ...header } = orderData;
 
-        // Sanitize header UUIDs
+        // Sanitize header values (convert empty strings to null)
         const sanitizedHeader = { ...header };
-        ['customer_id', 'executive_id', 'company_id'].forEach(f => {
+        Object.keys(sanitizedHeader).forEach(f => {
             if (sanitizedHeader[f] === '') sanitizedHeader[f] = null;
         });
 
@@ -58,10 +58,16 @@ export const SalesModel = {
     updateOrder: async (id: string, orderData: any) => {
         const { items, ...header } = orderData;
 
+        // Sanitize header values (convert empty strings to null)
+        const sanitizedHeader = { ...header };
+        Object.keys(sanitizedHeader).forEach(f => {
+            if (sanitizedHeader[f] === '') sanitizedHeader[f] = null;
+        });
+
         // Update header
         const { error: headerError } = await supabase
             .from('customer_orders')
-            .update(header)
+            .update(sanitizedHeader)
             .eq('id', id);
 
         if (headerError) throw new Error(headerError.message);
