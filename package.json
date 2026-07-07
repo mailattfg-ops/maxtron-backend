@@ -17,6 +17,8 @@
     "alter-marketing-visits-vehicle": "ts-node src/scripts/alter-marketing-visits-vehicle.ts",
     "alter-products-hsn": "ts-node src/scripts/alter-products-hsn.ts",
     "alter-production-consumption": "ts-node src/scripts/alter-production-consumption.ts",
+    "alter-invoices-einvoice": "ts-node src/scripts/alter-invoices-einvoice.ts",
+    "alter-employee-licenses": "ts-node src/scripts/alter-employee-licenses.ts",
     "keep-alive": "ts-node src/scripts/keep-alive.ts"
   },
   "keywords": [],

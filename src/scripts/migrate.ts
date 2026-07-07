@@ -299,6 +299,8 @@ async function runMigrations() {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
       license_no VARCHAR(100),
+      license_number VARCHAR(100),
+      class_of_vehicle VARCHAR(100),
       issue_date DATE,
       expiry_date DATE
     );
