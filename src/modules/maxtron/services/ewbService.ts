@@ -53,6 +53,9 @@ export class EwbService {
    * If not, it runs in Mock Staging Mode.
    */
   public static isMockMode(): boolean {
+    if (process.env.ENABLE_LIVE_EWB !== 'true') {
+      return true;
+    }
     const creds = this.getCredentials();
     return !creds.clientId || !creds.username || !creds.password || !creds.gstin;
   }
