@@ -11,7 +11,7 @@ export const ProductionModel = {
                 finished_products(id, product_name, product_code, color),
                 supervisor:users!supervisor_id(name),
                 operator:users!operator_id(name),
-                material_consumptions:consumption_id(
+                material_consumptions!batch_id(
                     *,
                     raw_materials!rm_id(rm_name, rm_code)
                 )
@@ -29,8 +29,8 @@ export const ProductionModel = {
     },
 
     createBatch: async (batchData: any) => {
-        // Sanitize UUID fields: convert empty strings to null
-        const sanitizedData = { ...batchData };
+        const { consumption_ids, ...batchFields } = batchData;
+        const sanitizedData = { ...batchFields };
         const uuidFields = ['product_id', 'operator_id', 'supervisor_id', 'company_id', 'consumption_id'];
 
         uuidFields.forEach(field => {
@@ -39,6 +39,20 @@ export const ProductionModel = {
             }
         });
 
+        // 1. Calculate sum of quantities for raw_material_consumed_qty
+        let totalQty = 0;
+        if (Array.isArray(consumption_ids) && consumption_ids.length > 0) {
+            const { data: conData, error: conError } = await supabase
+                .from('material_consumptions')
+                .select('quantity_used')
+                .in('id', consumption_ids);
+            if (!conError && conData) {
+                totalQty = conData.reduce((sum, item) => sum + (Number(item.quantity_used) || 0), 0);
+            }
+        }
+        sanitizedData.raw_material_consumed_qty = totalQty;
+
+        // 2. Insert production batch
         const { data, error } = await supabase
             .from('production_batches')
             .insert([sanitizedData])
@@ -47,11 +61,22 @@ export const ProductionModel = {
 
         if (error) throw new Error(error.message);
 
+        // 3. Link selected material_consumptions
+        if (Array.isArray(consumption_ids) && consumption_ids.length > 0) {
+            const { error: updateError } = await supabase
+                .from('material_consumptions')
+                .update({ batch_id: data.id })
+                .in('id', consumption_ids);
+
+            if (updateError) throw new Error(updateError.message);
+        }
+
         return data;
     },
 
     updateBatch: async (id: string, batchData: any) => {
-        const sanitizedData = { ...batchData };
+        const { consumption_ids, ...batchFields } = batchData;
+        const sanitizedData = { ...batchFields };
         const uuidFields = ['product_id', 'operator_id', 'supervisor_id', 'company_id', 'consumption_id'];
 
         uuidFields.forEach(field => {
@@ -60,6 +85,20 @@ export const ProductionModel = {
             }
         });
 
+        // 1. Calculate sum of quantities for raw_material_consumed_qty
+        let totalQty = 0;
+        if (Array.isArray(consumption_ids) && consumption_ids.length > 0) {
+            const { data: conData, error: conError } = await supabase
+                .from('material_consumptions')
+                .select('quantity_used')
+                .in('id', consumption_ids);
+            if (!conError && conData) {
+                totalQty = conData.reduce((sum, item) => sum + (Number(item.quantity_used) || 0), 0);
+            }
+        }
+        sanitizedData.raw_material_consumed_qty = totalQty;
+
+        // 2. Update production batch
         const { data, error } = await supabase
             .from('production_batches')
             .update(sanitizedData)
@@ -68,6 +107,23 @@ export const ProductionModel = {
             .single();
 
         if (error) throw new Error(error.message);
+
+        // 3. Reset batch_id for all consumptions currently linked to this batch
+        await supabase
+            .from('material_consumptions')
+            .update({ batch_id: null })
+            .eq('batch_id', id);
+
+        // 4. Link the new set of consumptions
+        if (Array.isArray(consumption_ids) && consumption_ids.length > 0) {
+            const { error: updateError } = await supabase
+                .from('material_consumptions')
+                .update({ batch_id: id })
+                .in('id', consumption_ids);
+
+            if (updateError) throw new Error(updateError.message);
+        }
+
         return data;
     },
 

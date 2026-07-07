@@ -16,6 +16,7 @@
     "alter-collection": "ts-node src/scripts/alter-collection.ts",
     "alter-marketing-visits-vehicle": "ts-node src/scripts/alter-marketing-visits-vehicle.ts",
     "alter-products-hsn": "ts-node src/scripts/alter-products-hsn.ts",
+    "alter-production-consumption": "ts-node src/scripts/alter-production-consumption.ts",
     "keep-alive": "ts-node src/scripts/keep-alive.ts"
   },
   "keywords": [],
