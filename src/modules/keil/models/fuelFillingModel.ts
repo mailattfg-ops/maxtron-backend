@@ -6,8 +6,8 @@ export class FuelFillingModel {
             .from('keil_fuel_filling')
             .select(`
                 *,
-                vehicle:keil_vehicles(registration_number),
-                company:companies(company_name)
+                vehicle:keil_vehicles!keil_fuel_filling_vehicle_id_fkey(registration_number),
+                company:companies!keil_fuel_filling_company_id_fkey(company_name)
             `)
             .order('log_date', { ascending: false });
 
@@ -21,10 +21,41 @@ export class FuelFillingModel {
         return data;
     }
 
+    static sanitize(data: any) {
+        const {
+            company_id,
+            log_date,
+            vehicle_id,
+            indent_number,
+            liters,
+            rate,
+            amount,
+            efficiency,
+            difference,
+            remarks,
+            pump_details
+        } = data;
+
+        const clean: any = {};
+        if (company_id !== undefined) clean.company_id = company_id;
+        if (log_date !== undefined) clean.log_date = log_date;
+        if (vehicle_id !== undefined) clean.vehicle_id = vehicle_id;
+        if (indent_number !== undefined) clean.indent_number = indent_number;
+        if (liters !== undefined) clean.liters = liters === '' ? null : liters;
+        if (rate !== undefined) clean.rate = rate === '' ? null : rate;
+        if (amount !== undefined) clean.amount = amount === '' ? null : amount;
+        if (efficiency !== undefined) clean.efficiency = efficiency === '' ? null : efficiency;
+        if (difference !== undefined) clean.difference = difference === '' ? null : difference;
+        if (remarks !== undefined) clean.remarks = remarks;
+        if (pump_details !== undefined) clean.pump_details = pump_details;
+        return clean;
+    }
+
     static async create(data: any) {
+        const cleanData = FuelFillingModel.sanitize(data);
         const { data: result, error } = await supabase
             .from('keil_fuel_filling')
-            .insert([data])
+            .insert([cleanData])
             .select()
             .single();
 
@@ -33,9 +64,10 @@ export class FuelFillingModel {
     }
 
     static async update(id: string, data: any) {
+        const cleanData = FuelFillingModel.sanitize(data);
         const { data: result, error } = await supabase
             .from('keil_fuel_filling')
-            .update(data)
+            .update(cleanData)
             .eq('id', id)
             .select()
             .single();

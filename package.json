@@ -11,6 +11,11 @@
     "start": "ts-node src/index.ts",
     "build": "npx tsc --project tsconfig.json",
     "migrate": "ts-node src/scripts/migrate.ts",
+    "alter-db": "ts-node src/scripts/alter-users.ts",
+    "alter-fuel": "ts-node src/scripts/alter-fuel.ts",
+    "alter-collection": "ts-node src/scripts/alter-collection.ts",
+    "alter-marketing-visits-vehicle": "ts-node src/scripts/alter-marketing-visits-vehicle.ts",
+    "alter-products-hsn": "ts-node src/scripts/alter-products-hsn.ts",
     "keep-alive": "ts-node src/scripts/keep-alive.ts"
   },
   "keywords": [],

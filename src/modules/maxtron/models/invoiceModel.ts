@@ -11,7 +11,7 @@ export const InvoiceModel = {
                 executive:users!executive_id(name),
                 items:sales_invoice_items(
                     *,
-                    finished_products(product_name, product_code)
+                    finished_products(product_name, product_code, hsn_code)
                 )
             `)
             .eq('company_id', companyId)
