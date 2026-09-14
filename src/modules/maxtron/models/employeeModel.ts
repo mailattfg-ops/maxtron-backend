@@ -84,13 +84,19 @@ export const EmployeeModel = {
             delete dataToInsert.employee_code;
         }
 
-        // Convert empty credentials/role fields to null
+        // Convert empty string UUIDs and optional fields to null
+        const uuidFields = ['branch_id', 'type', 'company_id', 'category_id'];
+        for (const f of uuidFields) {
+            if (dataToInsert[f] === '' || dataToInsert[f] === undefined) {
+                dataToInsert[f] = null;
+            }
+        }
         if (dataToInsert.username === '') dataToInsert.username = null;
-        if (dataToInsert.type === '') dataToInsert.type = null;
+        if (dataToInsert.date_of_birth === '') dataToInsert.date_of_birth = null;
 
         if (dataToInsert.password && dataToInsert.password.trim() !== '') {
             const salt = await bcrypt.genSalt(10);
-            dataToInsert.password = await bcrypt.hash(dataToInsert.password, salt);
+            dataToInsert.password = await bcrypt.hash(dataToInsert.password.trim(), salt);
         } else {
             delete dataToInsert.password;
         }
@@ -116,6 +122,8 @@ export const EmployeeModel = {
                     if (validRecords.length > 0) {
                       const mappedRecords = validRecords.map(r => {
                         const sanitized = { ...r, employee_id: user.id };
+                        delete sanitized.id;
+                        delete sanitized.created_at;
                         // Convert empty strings to null for DB compatibility
                         Object.keys(sanitized).forEach(key => {
                           if (sanitized[key] === '') sanitized[key] = null;
@@ -130,21 +138,34 @@ export const EmployeeModel = {
                 }
             };
 
-            await insertRelation('employee_qualifications', employee_qualifications);
-            await insertRelation('employee_experiences', employee_experiences);
-            await insertRelation('employee_certificates', employee_certificates);
-            await insertRelation('employee_licenses', employee_licenses);
-            await insertRelation('employee_insurances', employee_insurances);
-            await insertRelation('employee_passports', employee_passports);
-            await insertRelation('employee_loans', employee_loans);
-            await insertRelation('employee_targets', employee_targets);
-            await insertRelation('employee_suspenses', employee_suspenses);
-            await insertRelation('employee_incentive_slabs', employee_incentive_slabs);
+            const relationTasks: Promise<any>[] = [
+                insertRelation('employee_qualifications', employee_qualifications),
+                insertRelation('employee_experiences', employee_experiences),
+                insertRelation('employee_certificates', employee_certificates),
+                insertRelation('employee_licenses', employee_licenses),
+                insertRelation('employee_insurances', employee_insurances),
+                insertRelation('employee_passports', employee_passports),
+                insertRelation('employee_loans', employee_loans),
+                insertRelation('employee_targets', employee_targets),
+                insertRelation('employee_suspenses', employee_suspenses),
+                insertRelation('employee_incentive_slabs', employee_incentive_slabs)
+            ];
 
             if (addresses && addresses.length > 0) {
-                const mappedAddresses = addresses.map((a: any) => ({ ...a, user_id: user.id }));
-                await supabase.from('addresses').insert(mappedAddresses);
+                const validAddresses = addresses.filter((a: any) => {
+                    const vals = Object.values(a).filter(v => v !== '' && v !== null && v !== undefined);
+                    return vals.length > 0;
+                });
+                if (validAddresses.length > 0) {
+                    const mappedAddresses = validAddresses.map((a: any) => {
+                        const { id, created_at, ...rest } = a;
+                        return { ...rest, user_id: user.id };
+                    });
+                    relationTasks.push(Promise.resolve(supabase.from('addresses').insert(mappedAddresses)));
+                }
             }
+
+            await Promise.all(relationTasks);
         }
 
         return user;
@@ -161,13 +182,19 @@ export const EmployeeModel = {
 
         let dataToUpdate = { ...baseUserData };
         
-        // Convert empty credentials/role fields to null
+        // Convert empty string UUIDs and optional fields to null
+        const uuidFields = ['branch_id', 'type', 'company_id', 'category_id'];
+        for (const f of uuidFields) {
+            if (dataToUpdate[f] === '') {
+                dataToUpdate[f] = null;
+            }
+        }
         if (dataToUpdate.username === '') dataToUpdate.username = null;
-        if (dataToUpdate.type === '') dataToUpdate.type = null;
+        if (dataToUpdate.date_of_birth === '') dataToUpdate.date_of_birth = null;
 
-        if (dataToUpdate.password) {
+        if (dataToUpdate.password && typeof dataToUpdate.password === 'string' && dataToUpdate.password.trim() !== '') {
             const salt = await bcrypt.genSalt(10);
-            dataToUpdate.password = await bcrypt.hash(dataToUpdate.password, salt);
+            dataToUpdate.password = await bcrypt.hash(dataToUpdate.password.trim(), salt);
         } else {
             delete dataToUpdate.password;
         }
@@ -181,10 +208,10 @@ export const EmployeeModel = {
 
         if (error) throw new Error(error.message);
 
-        // Recreate relations by deleting old and inserting new
+        // Recreate relations in parallel by deleting old and inserting new
         if (user) {
             const recreateRelation = async (table: string, records: any[]) => {
-                if (records) {
+                if (records !== undefined && Array.isArray(records)) {
                     await supabase.from(table).delete().eq('employee_id', user.id);
 
                     if (records.length > 0) {
@@ -196,6 +223,8 @@ export const EmployeeModel = {
                         if (validRecords.length > 0) {
                           const mappedRecords = validRecords.map(r => {
                             const sanitized = { ...r, employee_id: user.id };
+                            delete sanitized.id;
+                            delete sanitized.created_at;
                             Object.keys(sanitized).forEach(key => {
                               if (sanitized[key] === '') sanitized[key] = null;
                             });
@@ -210,24 +239,38 @@ export const EmployeeModel = {
                 }
             };
 
-            await recreateRelation('employee_qualifications', employee_qualifications);
-            await recreateRelation('employee_experiences', employee_experiences);
-            await recreateRelation('employee_certificates', employee_certificates);
-            await recreateRelation('employee_licenses', employee_licenses);
-            await recreateRelation('employee_insurances', employee_insurances);
-            await recreateRelation('employee_passports', employee_passports);
-            await recreateRelation('employee_loans', employee_loans);
-            await recreateRelation('employee_targets', employee_targets);
-            await recreateRelation('employee_suspenses', employee_suspenses);
-            await recreateRelation('employee_incentive_slabs', employee_incentive_slabs);
+            const tasks: Promise<any>[] = [];
 
-            if (addresses) {
-                await supabase.from('addresses').delete().eq('user_id', user.id);
-                if (addresses.length > 0) {
-                    const mappedAddresses = addresses.map((a: any) => ({ ...a, user_id: user.id }));
-                    await supabase.from('addresses').insert(mappedAddresses);
-                }
+            if (employee_qualifications !== undefined) tasks.push(recreateRelation('employee_qualifications', employee_qualifications));
+            if (employee_experiences !== undefined) tasks.push(recreateRelation('employee_experiences', employee_experiences));
+            if (employee_certificates !== undefined) tasks.push(recreateRelation('employee_certificates', employee_certificates));
+            if (employee_licenses !== undefined) tasks.push(recreateRelation('employee_licenses', employee_licenses));
+            if (employee_insurances !== undefined) tasks.push(recreateRelation('employee_insurances', employee_insurances));
+            if (employee_passports !== undefined) tasks.push(recreateRelation('employee_passports', employee_passports));
+            if (employee_loans !== undefined) tasks.push(recreateRelation('employee_loans', employee_loans));
+            if (employee_targets !== undefined) tasks.push(recreateRelation('employee_targets', employee_targets));
+            if (employee_suspenses !== undefined) tasks.push(recreateRelation('employee_suspenses', employee_suspenses));
+            if (employee_incentive_slabs !== undefined) tasks.push(recreateRelation('employee_incentive_slabs', employee_incentive_slabs));
+
+            if (addresses !== undefined && Array.isArray(addresses)) {
+                tasks.push((async () => {
+                    await supabase.from('addresses').delete().eq('user_id', user.id);
+                    const validAddresses = addresses.filter((a: any) => {
+                        const vals = Object.values(a).filter(v => v !== '' && v !== null && v !== undefined);
+                        return vals.length > 0;
+                    });
+                    if (validAddresses.length > 0) {
+                        const mappedAddresses = validAddresses.map((a: any) => {
+                            const { id, created_at, ...rest } = a;
+                            return { ...rest, user_id: user.id };
+                        });
+                        const { error: addrErr } = await supabase.from('addresses').insert(mappedAddresses);
+                        if (addrErr) throw new Error(`Failed to update addresses: ${addrErr.message}`);
+                    }
+                })());
             }
+
+            await Promise.all(tasks);
         }
 
         return user || null;
