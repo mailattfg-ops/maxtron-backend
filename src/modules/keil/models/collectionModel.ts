@@ -2,10 +2,11 @@ import { supabase } from '../../../config/supabase';
 
 export const CollectionModel = {
     // Get headers for reports/list
-    getHeaders: async (companyId?: string, filters?: any) => {
+    getHeaders: async (companyId?: string, filters?: any, branchIds?: string[], isAllBranches?: boolean) => {
+        const isScoped = !isAllBranches && branchIds && branchIds.length > 0;
         let query = supabase.from('keil_collection_headers').select(`
             *,
-            route:keil_routes(route_name, route_code)
+            route:${isScoped ? 'keil_routes!inner(route_name, route_code, branch_id)' : 'keil_routes(route_name, route_code)'}
         `);
 
         if (companyId) query = query.eq('company_id', companyId);
@@ -13,6 +14,9 @@ export const CollectionModel = {
         if (filters?.date_from) query = query.gte('collection_date', filters.date_from);
         if (filters?.date_to) query = query.lte('collection_date', filters.date_to);
         if (filters?.route_id) query = query.eq('route_id', filters.route_id);
+        if (isScoped) {
+            query = query.in('route.branch_id', branchIds);
+        }
 
         const { data, error } = await query.order('collection_date', { ascending: false });
         if (error) throw new Error(error.message);

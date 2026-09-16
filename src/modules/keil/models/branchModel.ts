@@ -1,9 +1,12 @@
 import { supabase } from '../../../config/supabase';
 
 export const BranchModel = {
-    getAll: async (companyId?: string) => {
+    getAll: async (companyId?: string, branchIds?: string[], isAllBranches?: boolean) => {
         let query = supabase.from('keil_branches').select('*');
         if (companyId) query = query.eq('company_id', companyId);
+        if (!isAllBranches && branchIds && branchIds.length > 0) {
+            query = query.in('id', branchIds);
+        }
         const { data, error } = await query.order('created_at', { ascending: false });
         if (error) throw new Error(error.message);
         return data || [];

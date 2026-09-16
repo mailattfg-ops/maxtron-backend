@@ -1,4 +1,5 @@
 import { supabase } from '../../../config/supabase';
+
 import { User } from '../../../models/userModel';
 import bcrypt from 'bcryptjs';
 
@@ -91,6 +92,20 @@ export const EmployeeModel = {
                 dataToInsert[f] = null;
             }
         }
+
+        // Handle multi-branch assignment and sync branch_id
+        if (dataToInsert.is_all_branches !== undefined) {
+            dataToInsert.is_all_branches = Boolean(dataToInsert.is_all_branches);
+        }
+        if (Array.isArray(dataToInsert.branch_ids)) {
+            dataToInsert.branch_ids = dataToInsert.branch_ids.filter((b: any) => typeof b === 'string' && b.trim() !== '');
+            dataToInsert.branch_id = dataToInsert.branch_ids[0] || null;
+        } else if (dataToInsert.branch_id) {
+            dataToInsert.branch_ids = [dataToInsert.branch_id];
+        } else {
+            dataToInsert.branch_ids = [];
+        }
+
         if (dataToInsert.username === '') dataToInsert.username = null;
         if (dataToInsert.date_of_birth === '') dataToInsert.date_of_birth = null;
 
@@ -115,25 +130,25 @@ export const EmployeeModel = {
                 if (records && records.length > 0) {
                     // Filter out completely empty records
                     const validRecords = records.filter(r => {
-                      const values = Object.values(r).filter(v => v !== '' && v !== null && v !== undefined);
-                      return values.length > 0;
+                        const values = Object.values(r).filter(v => v !== '' && v !== null && v !== undefined);
+                        return values.length > 0;
                     });
 
                     if (validRecords.length > 0) {
-                      const mappedRecords = validRecords.map(r => {
-                        const sanitized = { ...r, employee_id: user.id };
-                        delete sanitized.id;
-                        delete sanitized.created_at;
-                        // Convert empty strings to null for DB compatibility
-                        Object.keys(sanitized).forEach(key => {
-                          if (sanitized[key] === '') sanitized[key] = null;
+                        const mappedRecords = validRecords.map(r => {
+                            const sanitized = { ...r, employee_id: user.id };
+                            delete sanitized.id;
+                            delete sanitized.created_at;
+                            // Convert empty strings to null for DB compatibility
+                            Object.keys(sanitized).forEach(key => {
+                                if (sanitized[key] === '') sanitized[key] = null;
+                            });
+                            return sanitized;
                         });
-                        return sanitized;
-                      });
-                      const { error } = await supabase.from(table).insert(mappedRecords);
-                      if (error) {
-                        throw new Error(`Failed to save ${table}: ${error.message}`);
-                      }
+                        const { error } = await supabase.from(table).insert(mappedRecords);
+                        if (error) {
+                            throw new Error(`Failed to save ${table}: ${error.message}`);
+                        }
                     }
                 }
             };
@@ -173,15 +188,15 @@ export const EmployeeModel = {
 
     // Update existing employee
     update: async (id: string, updates: any): Promise<User | null> => {
-        const { 
-          employee_qualifications, employee_experiences, employee_certificates, 
-          employee_licenses, employee_insurances, employee_passports, 
-          employee_loans, employee_targets, employee_suspenses, 
-          employee_incentive_slabs, addresses, ...baseUserData 
+        const {
+            employee_qualifications, employee_experiences, employee_certificates,
+            employee_licenses, employee_insurances, employee_passports,
+            employee_loans, employee_targets, employee_suspenses,
+            employee_incentive_slabs, addresses, ...baseUserData
         } = updates;
 
         let dataToUpdate = { ...baseUserData };
-        
+
         // Convert empty string UUIDs and optional fields to null
         const uuidFields = ['branch_id', 'type', 'company_id', 'category_id'];
         for (const f of uuidFields) {
@@ -189,6 +204,18 @@ export const EmployeeModel = {
                 dataToUpdate[f] = null;
             }
         }
+
+        // Handle multi-branch assignment and sync branch_id
+        if (dataToUpdate.is_all_branches !== undefined) {
+            dataToUpdate.is_all_branches = Boolean(dataToUpdate.is_all_branches);
+        }
+        if (Array.isArray(dataToUpdate.branch_ids)) {
+            dataToUpdate.branch_ids = dataToUpdate.branch_ids.filter((b: any) => typeof b === 'string' && b.trim() !== '');
+            dataToUpdate.branch_id = dataToUpdate.branch_ids[0] || null;
+        } else if (dataToUpdate.branch_id !== undefined) {
+            dataToUpdate.branch_ids = dataToUpdate.branch_id ? [dataToUpdate.branch_id] : [];
+        }
+
         if (dataToUpdate.username === '') dataToUpdate.username = null;
         if (dataToUpdate.date_of_birth === '') dataToUpdate.date_of_birth = null;
 
@@ -216,24 +243,24 @@ export const EmployeeModel = {
 
                     if (records.length > 0) {
                         const validRecords = records.filter(r => {
-                          const values = Object.values(r).filter(v => v !== '' && v !== null && v !== undefined);
-                          return values.length > 0;
+                            const values = Object.values(r).filter(v => v !== '' && v !== null && v !== undefined);
+                            return values.length > 0;
                         });
 
                         if (validRecords.length > 0) {
-                          const mappedRecords = validRecords.map(r => {
-                            const sanitized = { ...r, employee_id: user.id };
-                            delete sanitized.id;
-                            delete sanitized.created_at;
-                            Object.keys(sanitized).forEach(key => {
-                              if (sanitized[key] === '') sanitized[key] = null;
+                            const mappedRecords = validRecords.map(r => {
+                                const sanitized = { ...r, employee_id: user.id };
+                                delete sanitized.id;
+                                delete sanitized.created_at;
+                                Object.keys(sanitized).forEach(key => {
+                                    if (sanitized[key] === '') sanitized[key] = null;
+                                });
+                                return sanitized;
                             });
-                            return sanitized;
-                          });
-                          const { error: insError } = await supabase.from(table).insert(mappedRecords);
-                          if (insError) {
-                            throw new Error(`Failed to update ${table}: ${insError.message}`);
-                          }
+                            const { error: insError } = await supabase.from(table).insert(mappedRecords);
+                            if (insError) {
+                                throw new Error(`Failed to update ${table}: ${insError.message}`);
+                            }
                         }
                     }
                 }

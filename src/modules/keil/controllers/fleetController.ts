@@ -87,8 +87,12 @@ export const deleteVehicleLog = async (req: Request, res: Response) => {
 // Repair Logs
 export const getVehicleRepairs = async (req: Request, res: Response) => {
     try {
-        const { company_id, vehicle_id } = req.query;
-        const data = await VehicleRepairModel.getAll(company_id as string, vehicle_id as string);
+        const { company_id, vehicle_id, from, to } = req.query;
+        const data = await VehicleRepairModel.getAll(company_id as string, {
+            vehicle_id: vehicle_id as string,
+            from: from as string,
+            to: to as string
+        });
         res.status(200).json({ success: true, data });
     } catch (err: any) {
         res.status(500).json({ success: false, message: err.message });

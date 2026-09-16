@@ -28,6 +28,7 @@ import { getCategories, createCategory, updateCategory, deleteCategory } from '.
 import { getDashboardSummary } from '../controllers/dashboardController';
 import announcementRoutes from './announcementRoutes';
 import marketingOfferRoutes from './marketingOfferRoutes';
+import tradingGoodsRoutes from './tradingGoodsRoutes';
 import { protect } from '../../../middleware/authMiddleware';
 
 const router = Router();
@@ -59,6 +60,8 @@ router.use('/sales', salesRoutes);
 router.use('/purchase-entries', purchaseEntryRoutes);
 router.use('/consumptions', consumptionRoutes);
 router.use('/purchase-returns', purchaseReturnRoutes);
+router.use('/inventory/trading-goods', tradingGoodsRoutes);
+router.use('/trading-goods', tradingGoodsRoutes);
 router.use('/production', productionRoutes);
 router.use('/products', productRoutes);
 router.use('/finance', financeRoutes);

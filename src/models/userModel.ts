@@ -22,6 +22,9 @@ export interface User {
     bank_branch?: string | null;
     bank_account_type?: string | null;
     bank_name?: string | null;
+    branch_id?: string | null;
+    branch_ids?: string[] | null;
+    is_all_branches?: boolean;
     created_at?: string;
 }
 
