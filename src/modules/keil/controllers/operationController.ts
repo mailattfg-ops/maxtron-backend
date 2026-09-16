@@ -5,11 +5,50 @@ import { AssignmentModel } from '../models/assignmentModel';
 import { CollectionModel } from '../models/collectionModel';
 import { BranchModel } from '../models/branchModel';
 
+// Helper to determine branch access scope from user token
+const getUserBranchScope = (req: Request) => {
+    const user = (req as any).user;
+    const requestedBranchId = req.query.branch_id as string | undefined;
+
+    if (!user) {
+        if (requestedBranchId) {
+            return { isAllBranches: false, branchIds: [requestedBranchId] };
+        }
+        return { isAllBranches: true, branchIds: [] };
+    }
+
+    const isAdmin = 
+        user.role_name?.toLowerCase() === 'admin' || 
+        user.email?.toLowerCase() === 'admin@maxtron.com' ||
+        user.email?.toLowerCase() === 'admin@keil.com';
+
+    if (isAdmin || user.is_all_branches) {
+        if (requestedBranchId) {
+            return { isAllBranches: false, branchIds: [requestedBranchId] };
+        }
+        return { isAllBranches: true, branchIds: [] };
+    }
+
+    const userBranches: string[] = Array.isArray(user.branch_ids) && user.branch_ids.length > 0 
+        ? user.branch_ids 
+        : (user.branch_id ? [user.branch_id] : []);
+
+    if (requestedBranchId) {
+        return { 
+            isAllBranches: false, 
+            branchIds: userBranches.includes(requestedBranchId) ? [requestedBranchId] : ['00000000-0000-0000-0000-000000000000'] 
+        };
+    }
+
+    return { isAllBranches: false, branchIds: userBranches };
+};
+
 // Branch Handlers
 export const getBranches = async (req: Request, res: Response) => {
     try {
         const companyId = req.query.company_id as string;
-        const data = await BranchModel.getAll(companyId);
+        const { isAllBranches, branchIds } = getUserBranchScope(req);
+        const data = await BranchModel.getAll(companyId, branchIds, isAllBranches);
         res.status(200).json({ success: true, data });
     } catch (err: any) {
         res.status(500).json({ success: false, message: err.message });
@@ -56,7 +95,8 @@ export const deleteBranch = async (req: Request, res: Response) => {
 export const getHces = async (req: Request, res: Response) => {
     try {
         const companyId = req.query.company_id as string;
-        const data = await HCEModel.getAll(companyId);
+        const { isAllBranches, branchIds } = getUserBranchScope(req);
+        const data = await HCEModel.getAll(companyId, branchIds, isAllBranches);
         res.status(200).json({ success: true, data });
     } catch (err: any) {
         res.status(500).json({ success: false, message: err.message });
@@ -103,7 +143,8 @@ export const deleteHce = async (req: Request, res: Response) => {
 export const getRoutes = async (req: Request, res: Response) => {
     try {
         const companyId = req.query.company_id as string;
-        const data = await RouteModel.getAll(companyId);
+        const { isAllBranches, branchIds } = getUserBranchScope(req);
+        const data = await RouteModel.getAll(companyId, branchIds, isAllBranches);
         res.status(200).json({ success: true, data });
     } catch (err: any) {
         res.status(500).json({ success: false, message: err.message });
@@ -189,7 +230,8 @@ export const deleteAssignment = async (req: Request, res: Response) => {
 export const getCollectionHeaders = async (req: Request, res: Response) => {
     try {
         const { company_id, date, route_id, date_from, date_to } = req.query;
-        const data = await CollectionModel.getHeaders(company_id as string, { date, route_id, date_from, date_to });
+        const { isAllBranches, branchIds } = getUserBranchScope(req);
+        const data = await CollectionModel.getHeaders(company_id as string, { date, route_id, date_from, date_to }, branchIds, isAllBranches);
         res.status(200).json({ success: true, data });
     } catch (err: any) {
         res.status(500).json({ success: false, message: err.message });

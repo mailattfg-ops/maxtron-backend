@@ -74,6 +74,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                     company_code: company?.company_code || '',
                     category_id: user.category_id,
                     category_name: category?.category_name || '',
+                    branch_id: user.branch_id || null,
+                    branch_ids: user.branch_ids || (user.branch_id ? [user.branch_id] : []),
+                    is_all_branches: !!user.is_all_branches,
                     permissions: permissions || []
                 },
                 process.env.JWT_SECRET || 'super_secret_dev_key_12345',
@@ -91,6 +94,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                     role_name: roleData?.name || '',
                     company_id: user.company_id,
                     category_id: user.category_id,
+                    branch_id: user.branch_id || null,
+                    branch_ids: user.branch_ids || (user.branch_id ? [user.branch_id] : []),
+                    is_all_branches: !!user.is_all_branches,
                     company: company,
                     category: category,
                     permissions: permissions || []

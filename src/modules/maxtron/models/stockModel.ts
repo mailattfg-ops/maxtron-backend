@@ -66,10 +66,18 @@ export const StockModel = {
         if (companyId) saleItemsQuery = saleItemsQuery.eq('sales_invoices.company_id', companyId);
         const { data: salesItems, error: salesErr } = await saleItemsQuery;
 
+        // Fetch all trading goods inward
+        let tradingQuery = supabase.from('trading_goods_inward').select('product_id, quantity, company_id');
+        if (companyId) tradingQuery = tradingQuery.eq('company_id', companyId);
+        const { data: tradingItems, error: tradingErr } = await tradingQuery;
+
         // Calculate Stock
         const fgStockSummary = products.map(p => {
             // Production ONLY from secondary stage (Cutting & Sealing)
             const produced = productionItems?.filter(item => item.product_id === p.id)
+                .reduce((acc, curr) => acc + Number(curr.quantity || 0), 0) || 0;
+
+            const tradingInward = tradingItems?.filter(item => item.product_id === p.id)
                 .reduce((acc, curr) => acc + Number(curr.quantity || 0), 0) || 0;
 
             const sold = salesItems?.filter(item => item.product_id === p.id)
@@ -80,8 +88,9 @@ export const StockModel = {
             return {
                 ...p,
                 produced,
+                trading_inward: tradingInward,
                 sold,
-                balance: openingStock + produced - sold
+                balance: openingStock + produced + tradingInward - sold
             };
         });
 
