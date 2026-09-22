@@ -104,24 +104,25 @@ export const StockModel = {
         const { data: products, error: prodErr } = await prodQuery;
         if (prodErr) throw new Error(prodErr.message);
 
-        // Fetch Extrusion Output (Produced SFG)
-        let extrusionQuery = supabase.from('production_batches').select('product_id, extrusion_output_qty');
-        if (companyId) extrusionQuery = extrusionQuery.eq('company_id', companyId);
-        const { data: extrusionBatches, error: exErr } = await extrusionQuery;
+        // Fetch Extrusion Output (Produced SFG) — per roll. A batch's own
+        // product_id/extrusion_output_qty are "first product / total of all",
+        // which credited every mixed batch to one product and the rest to none.
+        let extrusionQuery = supabase.from('production_batch_items').select('product_id, output_qty, production_batches!inner(company_id)');
+        if (companyId) extrusionQuery = extrusionQuery.eq('production_batches.company_id', companyId);
+        const { data: extrusionItems, error: exErr } = await extrusionQuery;
         if (exErr) throw new Error(exErr.message);
 
-        // Fetch Cutting Input (Consumed SFG)
-        // We need to link production_conversions to products via production_batches
-        let cuttingQuery = supabase.from('production_conversions').select('input_qty, production_batches!inner(product_id, company_id)');
-        if (companyId) cuttingQuery = cuttingQuery.eq('production_batches.company_id', companyId);
+        // Fetch Cutting Input (Consumed SFG) — charged to the roll that was cut.
+        let cuttingQuery = supabase.from('production_conversions').select('input_qty, batch_item:production_batch_items!batch_item_id(product_id)');
+        if (companyId) cuttingQuery = cuttingQuery.eq('company_id', companyId);
         const { data: cuttingEntries, error: cutErr } = await cuttingQuery;
         if (cutErr) throw new Error(cutErr.message);
 
         const sfgStockSummary = products.map(p => {
-            const produced = extrusionBatches?.filter(item => item.product_id === p.id)
-                .reduce((acc, curr) => acc + Number(curr.extrusion_output_qty || 0), 0) || 0;
+            const produced = extrusionItems?.filter(item => item.product_id === p.id)
+                .reduce((acc, curr) => acc + Number(curr.output_qty || 0), 0) || 0;
 
-            const consumed = cuttingEntries?.filter((item: any) => item.production_batches.product_id === p.id)
+            const consumed = cuttingEntries?.filter((item: any) => item.batch_item?.product_id === p.id)
                 .reduce((acc, curr) => acc + Number(curr.input_qty || 0), 0) || 0;
 
             return {

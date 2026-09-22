@@ -1,27 +1,102 @@
 import { supabase } from '../../../config/supabase';
 
+const sumFor = (rows: any[], key: string, itemId: string) =>
+    rows.filter(r => r.batch_item_id === itemId).reduce((s, r) => s + (Number(r[key]) || 0), 0);
+
+/**
+ * Roll balance for one extrusion item (batch × product). The unit of stock
+ * between extrusion and cutting is the ROLL, not the batch: one batch can
+ * extrude Green 424 Kg and Transparent 776 Kg, and the floor cuts part of
+ * one roll per shift and keeps the rest.
+ *
+ *   available_qty          — what cutting may draw: raw roll left + printed
+ *                            output, minus everything already cut
+ *   printing_available_qty — raw roll not yet printed AND not yet cut. Cuts
+ *                            are taken to come from printed output first;
+ *                            whatever exceeds it must have come off the raw
+ *                            roll, so a roll cut straight from extrusion
+ *                            cannot be printed afterwards.
+ *
+ * ponytail: one pool for cutting, so a partially printed roll lets cutting
+ * draw the unprinted remainder too. Split into raw/printed pools if the
+ * floor ever needs that distinction.
+ */
+export const withRollBalance = (item: any, conversions: any[], printings: any[]) => {
+    const out = Number(item.output_qty) || 0;
+    const printIn = sumFor(printings, 'input_qty', item.id);
+    const printOut = sumFor(printings, 'output_qty', item.id);
+    const cutIn = sumFor(conversions, 'input_qty', item.id);
+    const cutFromRaw = Math.max(0, cutIn - printOut);
+    return {
+        ...item,
+        printing_available_qty: out - printIn - cutFromRaw,
+        available_qty: out - printIn + printOut - cutIn,
+    };
+};
+
+/**
+ * Refuse a cutting/printing entry that draws more than the roll has left.
+ * The UI caps the field too, but the UI is not a check. `excludeId` is the
+ * row being edited, so its own previous draw is not counted against it.
+ * Returns the roll so callers can attribute wastage to the right product.
+ */
+const assertRollBalance = async (
+    stage: 'cutting' | 'printing',
+    batchItemId: string,
+    inputQty: number,
+    excludeId?: string
+) => {
+    const { data: item, error } = await supabase
+        .from('production_batch_items')
+        .select('id, batch_id, product_id, output_qty')
+        .eq('id', batchItemId)
+        .single();
+    if (error || !item) throw new Error('Selected roll (batch item) not found.');
+
+    const [{ data: convs }, { data: prints }] = await Promise.all([
+        supabase.from('production_conversions').select('id, batch_item_id, input_qty').eq('batch_item_id', batchItemId),
+        supabase.from('production_printing').select('id, batch_item_id, input_qty, output_qty').eq('batch_item_id', batchItemId),
+    ]);
+    const roll = withRollBalance(
+        item,
+        (convs || []).filter(c => c.id !== excludeId),
+        (prints || []).filter(p => p.id !== excludeId)
+    );
+    const available = stage === 'cutting' ? roll.available_qty : roll.printing_available_qty;
+    if (inputQty > available + 0.0005) {
+        const err: any = new Error(`Only ${available.toFixed(3)} Kg left on this roll; ${inputQty} Kg requested.`);
+        err.status = 400;
+        throw err;
+    }
+    return item;
+};
+
 export const ProductionModel = {
     // Extrusion Batches
     getBatches: async (companyId: string) => {
         console.log(`Fetching batches for companyId: ${companyId}`);
-        const { data, error } = await supabase
-            .from('production_batches')
-            .select(`
-                *,
-                finished_products(id, product_name, product_code, color),
-                items:production_batch_items(
+        const [{ data, error }, { data: convs }, { data: prints }] = await Promise.all([
+            supabase
+                .from('production_batches')
+                .select(`
                     *,
-                    finished_products(id, product_name, product_code, color)
-                ),
-                supervisor:users!supervisor_id(name),
-                operator:users!operator_id(name),
-                material_consumptions!batch_id(
-                    *,
-                    raw_materials!rm_id(rm_name, rm_code)
-                )
-            `)
-            .eq('company_id', companyId)
-            .order('batch_number', { ascending: false });
+                    finished_products(id, product_name, product_code, color),
+                    items:production_batch_items(
+                        *,
+                        finished_products(id, product_name, product_code, color)
+                    ),
+                    supervisor:users!supervisor_id(name),
+                    operator:users!operator_id(name),
+                    material_consumptions!batch_id(
+                        *,
+                        raw_materials!rm_id(rm_name, rm_code)
+                    )
+                `)
+                .eq('company_id', companyId)
+                .order('batch_number', { ascending: false }),
+            supabase.from('production_conversions').select('batch_item_id, input_qty').eq('company_id', companyId),
+            supabase.from('production_printing').select('batch_item_id, input_qty, output_qty').eq('company_id', companyId),
+        ]);
 
         if (error) {
             console.error('Supabase Error in getBatches:', error);
@@ -29,7 +104,10 @@ export const ProductionModel = {
         }
 
         console.log(`Fetched ${data?.length || 0} batches`);
-        return data || [];
+        return (data || []).map((b: any) => ({
+            ...b,
+            items: (b.items || []).map((it: any) => withRollBalance(it, convs || [], prints || [])),
+        }));
     },
 
     createBatch: async (batchData: any) => {
@@ -252,6 +330,7 @@ export const ProductionModel = {
             .select(`
                 *,
                 production_batches(batch_number, finished_products(product_name)),
+                batch_item:production_batch_items!batch_item_id(finished_products(product_name, product_code, color)),
                 operator:users!operator_id(name),
                 items:production_conversion_items(
                     *,
@@ -269,9 +348,13 @@ export const ProductionModel = {
 
         // Sanitize header UUID fields
         const sanitizedHeader = { ...header };
-        ['batch_id', 'operator_id', 'company_id'].forEach(f => {
+        ['batch_id', 'batch_item_id', 'operator_id', 'company_id'].forEach(f => {
             if (sanitizedHeader[f] === '') sanitizedHeader[f] = null;
         });
+
+        const roll = sanitizedHeader.batch_item_id
+            ? await assertRollBalance('cutting', sanitizedHeader.batch_item_id, Number(sanitizedHeader.input_qty) || 0)
+            : null;
 
         const { data, error } = await supabase
             .from('production_conversions')
@@ -295,17 +378,21 @@ export const ProductionModel = {
 
         // --- AUTOMATED WASTAGE LOGGING ---
         if (Number(data.wastage_qty || 0) > 0) {
-            // Get product_id from batch
-            const { data: batch } = await supabase
-                .from('production_batches')
-                .select('product_id')
-                .eq('id', data.batch_id)
-                .single();
+            // The roll's product; the batch's product_id is only its FIRST product.
+            let productId = roll?.product_id || null;
+            if (!productId) {
+                const { data: batch } = await supabase
+                    .from('production_batches')
+                    .select('product_id')
+                    .eq('id', data.batch_id)
+                    .single();
+                productId = batch?.product_id || null;
+            }
 
             await supabase.from('production_wastage').insert([{
                 company_id: data.company_id,
                 stage: 'Cutting',
-                product_id: batch?.product_id || null,
+                product_id: productId,
                 date: data.date,
                 wastage_qty: Number(data.wastage_qty),
                 reason_code: 'PRODUCTION_WASTAGE',
@@ -319,9 +406,13 @@ export const ProductionModel = {
     updateConversion: async (id: string, convData: any) => {
         const { items, ...header } = convData;
         const sanitizedHeader = { ...header };
-        ['batch_id', 'operator_id', 'company_id'].forEach(f => {
+        ['batch_id', 'batch_item_id', 'operator_id', 'company_id'].forEach(f => {
             if (sanitizedHeader[f] === '') sanitizedHeader[f] = null;
         });
+
+        if (sanitizedHeader.batch_item_id) {
+            await assertRollBalance('cutting', sanitizedHeader.batch_item_id, Number(sanitizedHeader.input_qty) || 0, id);
+        }
 
         const { data, error } = await supabase
             .from('production_conversions')
@@ -367,9 +458,10 @@ export const ProductionModel = {
             .select(`
                 *,
                 production_batches(
-                    batch_number, 
+                    batch_number,
                     finished_products(product_name, product_code, color)
                 ),
+                batch_item:production_batch_items!batch_item_id(finished_products(product_name, product_code, color)),
                 operator:users!operator_id(name)
             `)
             .eq('company_id', companyId)
@@ -380,9 +472,13 @@ export const ProductionModel = {
 
     createPrinting: async (printData: any) => {
         const sanitizedData = { ...printData };
-        ['batch_id', 'operator_id', 'company_id'].forEach(f => {
+        ['batch_id', 'batch_item_id', 'operator_id', 'company_id'].forEach(f => {
             if (sanitizedData[f] === '') sanitizedData[f] = null;
         });
+
+        const roll = sanitizedData.batch_item_id
+            ? await assertRollBalance('printing', sanitizedData.batch_item_id, Number(sanitizedData.input_qty) || 0)
+            : null;
 
         const { data, error } = await supabase
             .from('production_printing')
@@ -394,11 +490,15 @@ export const ProductionModel = {
 
         // Track wastage for printing
         if (Number(data.wastage_qty || 0) > 0) {
-            const { data: batch } = await supabase.from('production_batches').select('product_id').eq('id', data.batch_id).single();
+            let productId = roll?.product_id || null;
+            if (!productId) {
+                const { data: batch } = await supabase.from('production_batches').select('product_id').eq('id', data.batch_id).single();
+                productId = batch?.product_id || null;
+            }
             await supabase.from('production_wastage').insert([{
                 company_id: data.company_id,
                 stage: 'Printing',
-                product_id: batch?.product_id || null,
+                product_id: productId,
                 date: data.date,
                 wastage_qty: Number(data.wastage_qty),
                 reason_code: 'PRINTING_WASTAGE',
@@ -411,9 +511,13 @@ export const ProductionModel = {
 
     updatePrinting: async (id: string, printData: any) => {
         const sanitizedData = { ...printData };
-        ['batch_id', 'operator_id', 'company_id'].forEach(f => {
+        ['batch_id', 'batch_item_id', 'operator_id', 'company_id'].forEach(f => {
             if (sanitizedData[f] === '') sanitizedData[f] = null;
         });
+
+        if (sanitizedData.batch_item_id) {
+            await assertRollBalance('printing', sanitizedData.batch_item_id, Number(sanitizedData.input_qty) || 0, id);
+        }
 
         const { data, error } = await supabase
             .from('production_printing')
@@ -442,7 +546,8 @@ export const ProductionModel = {
             .select(`
                 *,
                 production_conversions(
-                    production_batches(batch_number, finished_products(product_name))
+                    production_batches(batch_number, finished_products(product_name)),
+                    batch_item:production_batch_items!batch_item_id(finished_products(product_name))
                 )
             `)
             .eq('company_id', companyId)

@@ -9,7 +9,7 @@ export const productionController = {
             const data = await ProductionModel.getBatches(company_id as string);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     createBatch: async (req: Request, res: Response) => {
@@ -17,7 +17,7 @@ export const productionController = {
             const data = await ProductionModel.createBatch(req.body);
             res.status(201).json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     updateBatch: async (req: Request, res: Response) => {
@@ -26,7 +26,7 @@ export const productionController = {
             const data = await ProductionModel.updateBatch(id, req.body);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     deleteBatch: async (req: Request, res: Response) => {
@@ -35,7 +35,7 @@ export const productionController = {
             await ProductionModel.deleteBatch(id);
             res.json({ success: true, message: 'Batch deleted' });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
 
@@ -46,7 +46,7 @@ export const productionController = {
             const data = await ProductionModel.getConversions(company_id as string);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     createConversion: async (req: Request, res: Response) => {
@@ -54,7 +54,7 @@ export const productionController = {
             const data = await ProductionModel.createConversion(req.body);
             res.status(201).json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     updateConversion: async (req: Request, res: Response) => {
@@ -63,7 +63,7 @@ export const productionController = {
             const data = await ProductionModel.updateConversion(id, req.body);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     deleteConversion: async (req: Request, res: Response) => {
@@ -72,7 +72,7 @@ export const productionController = {
             await ProductionModel.deleteConversion(id);
             res.json({ success: true, message: 'Conversion record deleted' });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     
@@ -83,7 +83,7 @@ export const productionController = {
             const data = await ProductionModel.getPrinting(company_id as string);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     createPrinting: async (req: Request, res: Response) => {
@@ -91,7 +91,7 @@ export const productionController = {
             const data = await ProductionModel.createPrinting(req.body);
             res.status(201).json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     updatePrinting: async (req: Request, res: Response) => {
@@ -100,7 +100,7 @@ export const productionController = {
             const data = await ProductionModel.updatePrinting(id, req.body);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     deletePrinting: async (req: Request, res: Response) => {
@@ -109,7 +109,7 @@ export const productionController = {
             await ProductionModel.deletePrinting(id);
             res.json({ success: true, message: 'Printing record deleted' });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
 
@@ -120,7 +120,7 @@ export const productionController = {
             const data = await ProductionModel.getPacking(company_id as string);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     createPacking: async (req: Request, res: Response) => {
@@ -128,7 +128,7 @@ export const productionController = {
             const data = await ProductionModel.createPacking(req.body);
             res.status(201).json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     updatePacking: async (req: Request, res: Response) => {
@@ -137,7 +137,7 @@ export const productionController = {
             const data = await ProductionModel.updatePacking(id, req.body);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     deletePacking: async (req: Request, res: Response) => {
@@ -146,7 +146,7 @@ export const productionController = {
             await ProductionModel.deletePacking(id);
             res.json({ success: true, message: 'Packing record deleted' });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
 
@@ -157,7 +157,7 @@ export const productionController = {
             const data = await ProductionModel.getWastage(company_id as string);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     createWastage: async (req: Request, res: Response) => {
@@ -165,7 +165,7 @@ export const productionController = {
             const data = await ProductionModel.createWastage(req.body);
             res.status(201).json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     updateWastage: async (req: Request, res: Response) => {
@@ -174,7 +174,7 @@ export const productionController = {
             const data = await ProductionModel.updateWastage(id, req.body);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     deleteWastage: async (req: Request, res: Response) => {
@@ -183,7 +183,7 @@ export const productionController = {
             await ProductionModel.deleteWastage(id);
             res.json({ success: true, message: 'Wastage record deleted' });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
 
@@ -194,7 +194,7 @@ export const productionController = {
             const data = await ProductionModel.getExpenses(company_id as string);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     createExpense: async (req: Request, res: Response) => {
@@ -202,7 +202,7 @@ export const productionController = {
             const data = await ProductionModel.createExpense(req.body);
             res.status(201).json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     updateExpense: async (req: Request, res: Response) => {
@@ -211,7 +211,7 @@ export const productionController = {
             const data = await ProductionModel.updateExpense(id, req.body);
             res.json({ success: true, data });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     },
     deleteExpense: async (req: Request, res: Response) => {
@@ -220,7 +220,7 @@ export const productionController = {
             await ProductionModel.deleteExpense(id);
             res.json({ success: true, message: 'Expense record deleted' });
         } catch (error: any) {
-            res.status(500).json({ success: false, message: error.message });
+            res.status(error.status || 500).json({ success: false, message: error.message });
         }
     }
 };
