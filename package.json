@@ -20,6 +20,7 @@
     "alter-invoices-einvoice": "ts-node src/scripts/alter-invoices-einvoice.ts",
     "alter-employee-licenses": "ts-node src/scripts/alter-employee-licenses.ts",
     "alter-opening-stock": "ts-node src/scripts/alter-opening-stock.ts",
+    "alter-batch-item-link": "ts-node src/scripts/add-batch-item-link.ts",
     "keep-alive": "ts-node src/scripts/keep-alive.ts"
   },
   "keywords": [],

@@ -76,7 +76,7 @@ export const getDashboardSummary = async (req: Request, res: Response): Promise<
         ] = await Promise.all([
             supabase.from('sales_invoices').select('invoice_number, net_amount, invoice_date, customers(customer_name)').eq('company_id', cId).order('invoice_date', { ascending: false }).limit(5),
             supabase.from('customer_orders').select('order_number, total_amount, order_date, customers(customer_name), status').eq('company_id', cId).order('order_date', { ascending: false }).limit(5),
-            supabase.from('production_batches').select('batch_number, extrusion_output_qty, date, finished_products(product_name)').eq('company_id', cId).order('date', { ascending: false }).limit(5)
+            supabase.from('production_batches').select('batch_number, extrusion_output_qty, date, finished_products(product_name), items:production_batch_items(finished_products(product_name))').eq('company_id', cId).order('date', { ascending: false }).limit(5)
         ]);
 
         // 3. Calculation Logic
