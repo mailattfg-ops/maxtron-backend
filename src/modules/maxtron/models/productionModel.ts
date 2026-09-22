@@ -480,6 +480,23 @@ export const ProductionModel = {
             ? await assertRollBalance('printing', sanitizedData.batch_item_id, Number(sanitizedData.input_qty) || 0)
             : null;
 
+        // The job number is assigned HERE, from the database — never trusted
+        // from the browser. The page used to pick max(loaded jobs)+1, so a tab
+        // opened before someone else's save (or two people on the page) both
+        // chose PRN-000001 and hit the unique constraint.
+        // ponytail: max+1 has a tiny race between two simultaneous saves; the
+        // unique constraint still catches it and the user retries. Move to a
+        // sequence like cutting_no_seq if that ever actually happens.
+        const { data: last } = await supabase
+            .from('production_printing')
+            .select('printing_number')
+            .eq('company_id', sanitizedData.company_id)
+            .like('printing_number', 'PRN-%')
+            .order('printing_number', { ascending: false })
+            .limit(1);
+        const lastNo = parseInt(String(last?.[0]?.printing_number || '').split('-')[1] || '0', 10) || 0;
+        sanitizedData.printing_number = `PRN-${String(lastNo + 1).padStart(6, '0')}`;
+
         const { data, error } = await supabase
             .from('production_printing')
             .insert([sanitizedData])
@@ -514,6 +531,8 @@ export const ProductionModel = {
         ['batch_id', 'batch_item_id', 'operator_id', 'company_id'].forEach(f => {
             if (sanitizedData[f] === '') sanitizedData[f] = null;
         });
+        // The number was assigned on create; an edit never changes or blanks it.
+        delete sanitizedData.printing_number;
 
         if (sanitizedData.batch_item_id) {
             await assertRollBalance('printing', sanitizedData.batch_item_id, Number(sanitizedData.input_qty) || 0, id);
