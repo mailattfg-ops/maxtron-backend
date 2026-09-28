@@ -31,6 +31,11 @@ export const getPayroll = async (req: Request, res: Response): Promise<void> => 
 
 export const createPayroll = async (req: Request, res: Response): Promise<void> => {
     try {
+        if (Array.isArray(req.body)) {
+            const items = await PayrollModel.bulkCreate(req.body);
+            res.status(201).json({ success: true, count: items.length, data: items });
+            return;
+        }
         const item = await PayrollModel.create(req.body);
         res.status(201).json({ success: true, data: item });
     } catch (error: any) {

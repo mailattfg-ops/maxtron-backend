@@ -6,7 +6,7 @@ export const VehicleLogModel = {
             .from('keil_vehicle_logs')
             .select(`
                 *,
-                vehicle:keil_vehicles!keil_vehicle_logs_vehicle_id_fkey(registration_number),
+                vehicle:keil_vehicles!keil_vehicle_logs_vehicle_id_fkey(registration_number, vehicle_type),
                 supervisor:users!keil_vehicle_logs_supervisor_id_fkey(name),
                 route:keil_routes!keil_vehicle_logs_route_id_fkey(
                     route_name,
