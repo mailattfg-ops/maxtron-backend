@@ -56,7 +56,8 @@ export const InvoiceModel = {
         const nullableFields = [
             'customer_id', 'executive_id', 'order_id', 'company_id',
             'transporter_id', 'trans_doc_no', 'trans_doc_date',
-            'scheduled_delivery_date', 'remarks', 'vehicle_no', 'transporter_name'
+            'scheduled_delivery_date', 'remarks', 'vehicle_no', 'transporter_name',
+            'billing_software', 'bill_document_url', 'bill_document_name'
         ];
         nullableFields.forEach(f => {
             if (sanitizedHeader[f] === '' || sanitizedHeader[f] === undefined) {
@@ -102,7 +103,8 @@ export const InvoiceModel = {
         const nullableFields = [
             'customer_id', 'executive_id', 'order_id', 'company_id',
             'transporter_id', 'trans_doc_no', 'trans_doc_date',
-            'scheduled_delivery_date', 'remarks', 'vehicle_no', 'transporter_name'
+            'scheduled_delivery_date', 'remarks', 'vehicle_no', 'transporter_name',
+            'billing_software', 'bill_document_url', 'bill_document_name'
         ];
         nullableFields.forEach(f => {
             if (sanitizedHeader[f] === '' || sanitizedHeader[f] === undefined) {

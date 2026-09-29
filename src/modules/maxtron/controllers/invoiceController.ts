@@ -67,18 +67,22 @@ export const invoiceController = {
             const invType = (enriched.invoice_type || (enriched.customers?.gst_no ? 'B2B' : 'B2C')).toUpperCase();
             const isB2B = invType === 'B2B';
             const netAmount = Number(enriched.net_amount);
+            const isExternal = Boolean(enriched.is_external);
 
             let eInvoiceResult: any = null;
             let ewbResult: any = null;
 
-            // Rule 1: e-Invoice is B2B only
-            if (isB2B && netAmount > 0) {
+            // Rule 1: e-Invoice is B2B only and NOT an external bill raised outside system (e.g. Tally)
+            if (!isExternal && isB2B && netAmount > 0) {
                 console.log(`[invoiceController] Auto-triggering e-Invoice for B2B Invoice ${enriched.invoice_number}`);
                 eInvoiceResult = await EInvoiceService.generateEInvoice(enriched, enriched.customers, enriched.items);
+            } else if (isExternal) {
+                console.log(`[invoiceController] External bill detected (${enriched.billing_software || 'External'}). Skipping e-Invoice generation for Invoice ${enriched.invoice_number}`);
+                await supabase.from('sales_invoices').update({ einvoice_status: 'NOT_APPLICABLE' }).eq('id', data.id);
             }
 
-            // Rule 2: e-Way Bill triggers if Amount > 50,000
-            if (netAmount > 50000) {
+            // Rule 2: e-Way Bill triggers if Amount > 50,000 (only for internal invoices)
+            if (!isExternal && netAmount > 50000) {
                 console.log(`[invoiceController] Auto-triggering EWB for Invoice ${enriched.invoice_number} (Amount: ${netAmount})`);
                 ewbResult = await EwbService.generateEwb(enriched, enriched.customers, enriched.items);
             }
@@ -129,16 +133,17 @@ export const invoiceController = {
             const invType = (enriched.invoice_type || (enriched.customers?.gst_no ? 'B2B' : 'B2C')).toUpperCase();
             const isB2B = invType === 'B2B';
             const netAmount = Number(enriched.net_amount);
+            const isExternal = Boolean(enriched.is_external);
 
             let eInvoiceResult: any = null;
             let ewbResult: any = null;
 
-            if (isB2B && netAmount > 0 && enriched.einvoice_status !== 'GENERATED') {
+            if (!isExternal && isB2B && netAmount > 0 && enriched.einvoice_status !== 'GENERATED') {
                 console.log(`[invoiceController] Re-triggering e-Invoice on update for B2B Invoice ${enriched.invoice_number}`);
                 eInvoiceResult = await EInvoiceService.generateEInvoice(enriched, enriched.customers, enriched.items);
             }
 
-            if (netAmount > 50000 && enriched.ewb_status !== 'GENERATED') {
+            if (!isExternal && netAmount > 50000 && enriched.ewb_status !== 'GENERATED') {
                 console.log(`[invoiceController] Re-triggering EWB on update for Invoice ${enriched.invoice_number}`);
                 ewbResult = await EwbService.generateEwb(enriched, enriched.customers, enriched.items);
             }
@@ -188,6 +193,10 @@ export const invoiceController = {
         try {
             const { id } = req.params;
             const invoice = await getEnrichedInvoice(id);
+
+            if (invoice.is_external) {
+                return res.status(400).json({ success: false, message: 'E-Invoice generation is disabled for bills raised outside the system (external bills).' });
+            }
 
             if (!invoice.customers?.gst_no) {
                 return res.status(400).json({ success: false, message: 'E-Invoice requires a B2B customer with a valid GST number.' });
