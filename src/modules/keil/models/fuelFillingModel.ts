@@ -65,6 +65,17 @@ export class FuelFillingModel {
         return result;
     }
 
+    static async bulkCreate(records: any[]) {
+        const cleanRecords = records.map(r => FuelFillingModel.sanitize(r));
+        const { data: result, error } = await supabase
+            .from('keil_fuel_filling')
+            .insert(cleanRecords)
+            .select();
+
+        if (error) throw error;
+        return result;
+    }
+
     static async update(id: string, data: any) {
         const cleanData = FuelFillingModel.sanitize(data);
         const { data: result, error } = await supabase

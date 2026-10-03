@@ -20,6 +20,19 @@ export class FuelFillingController {
         }
     }
 
+    static async bulkCreate(req: Request, res: Response) {
+        try {
+            const { records } = req.body;
+            if (!Array.isArray(records) || records.length === 0) {
+                return res.status(400).json({ success: false, message: 'No records provided for bulk import' });
+            }
+            const data = await FuelFillingModel.bulkCreate(records);
+            res.json({ success: true, count: data?.length || 0, data });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
     static async update(req: Request, res: Response) {
         try {
             const data = await FuelFillingModel.update(req.params.id, req.body);

@@ -141,6 +141,9 @@ export const invoiceController = {
             if (!isExternal && isB2B && netAmount > 0 && enriched.einvoice_status !== 'GENERATED') {
                 console.log(`[invoiceController] Re-triggering e-Invoice on update for B2B Invoice ${enriched.invoice_number}`);
                 eInvoiceResult = await EInvoiceService.generateEInvoice(enriched, enriched.customers, enriched.items);
+            } else if (isExternal && enriched.einvoice_status !== 'GENERATED') {
+                console.log(`[invoiceController] External bill detected on update (${enriched.billing_software || 'External'}). Setting einvoice_status to NOT_APPLICABLE for Invoice ${enriched.invoice_number}`);
+                await supabase.from('sales_invoices').update({ einvoice_status: 'NOT_APPLICABLE' }).eq('id', id);
             }
 
             if (!isExternal && netAmount > 50000 && enriched.ewb_status !== 'GENERATED') {
