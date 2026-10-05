@@ -1,4 +1,5 @@
 import { supabase } from '../../../config/supabase';
+import { lineGstRates, missingForPortal } from './eInvoiceService';
 
 export interface EwbResponse {
   ewb_no?: string;
@@ -88,9 +89,16 @@ export class EwbService {
     items: any[]
   ): Promise<EwbResponse> {
     try {
-      // 1. Validation & Fallback checks
-      const transMode = invoice.trans_mode || '1';
-      const vehicleNo = (invoice.vehicle_no && invoice.vehicle_no.trim()) ? invoice.vehicle_no.trim() : 'MH04AB1234';
+      // 1. Validation: an e-Way Bill is sent with what is on record or not at all
+      const vehicleNo = (invoice.vehicle_no || '').trim();
+      const missing = missingForPortal(customer, items);
+      if (!vehicleNo && !invoice.transporter_id) missing.push('vehicle number (or transporter ID)');
+      if (missing.length > 0) {
+        return {
+          ewb_status: 'FAILED',
+          ewb_error: `E-Way Bill not sent. Missing on record: ${missing.join(', ')}. Add it and generate again.`,
+        };
+      }
 
       // Check if it's Mock Mode
       if (this.isMockMode()) {
@@ -141,11 +149,12 @@ export class EwbService {
       const buyerGstin = customer.gst_no || "URP";
       const buyerStateCode = buyerGstin !== "URP" ? buyerGstin.substring(0, 2) : sellerStateCode;
       const buyerStateName = getStateName(buyerStateCode);
-      const buyerPincode = parseInt(customer.addresses?.[0]?.zip_code) || (buyerStateCode === "32" ? 678001 : 400001);
-      const buyerPlace = customer.addresses?.[0]?.city || (buyerStateCode === "32" ? "Palakkad" : "Mumbai");
+      const buyerPincode = parseInt(String(customer.addresses[0].zip_code).replace(/[^0-9]/g, ''));
+      const buyerPlace = customer.addresses[0].city;
 
       const isIgst = buyerStateCode !== sellerStateCode;
-      
+      const gstRates = lineGstRates(invoice, items);
+
       const ewbPayload = {
         userGstin: creds.gstin,
         supply_type: "outward",
@@ -156,15 +165,15 @@ export class EwbService {
         document_date: new Date(docDate).toLocaleDateString('en-GB'), // "DD/MM/YYYY" format
         gstin_of_consignor: creds.gstin,
         legal_name_of_consignor: sellerLegalName,
-        address1_of_consignor: sellerStateCode === "32" ? "KEIL Industrial Area" : "Maxtron Industrial Area",
-        address2_of_consignor: "Phase II",
+        address1_of_consignor: "13-95, 13-96, PIRIVUSALA", // as printed on the invoice
+        address2_of_consignor: "CHANDRANAGAR",
         place_of_consignor: sellerPlace,
         pincode_of_consignor: sellerPincode,
         state_of_consignor: sellerStateName,
         actual_from_state_name: sellerStateName,
         gstin_of_consignee: buyerGstin,
         legal_name_of_consignee: customer.customer_name,
-        address1_of_consignee: customer.addresses?.[0]?.street || "Customer Address",
+        address1_of_consignee: customer.addresses[0].street,
         address2_of_consignee: "",
         place_of_consignee: buyerPlace,
         pincode_of_consignee: buyerPincode,
@@ -195,15 +204,15 @@ export class EwbService {
         auto_print: "N",
         email: "",
         delete_record: "N",
-        itemList: items.map((item: any) => ({
-          product_name: item.finished_products?.product_name || "Industrial Product",
-          product_description: item.finished_products?.product_name || "Industrial Product",
-          hsn_code: item.finished_products?.hsn_code || "392011",
+        itemList: items.map((item: any, idx: number) => ({
+          product_name: item.finished_products.product_name,
+          product_description: item.finished_products.product_name,
+          hsn_code: item.finished_products.hsn_code,
           quantity: Number(item.quantity),
           unit_of_product: "KGS",
-          cgst_rate: isIgst ? 0 : Number(item.gst_percent || 18) / 2,
-          sgst_rate: isIgst ? 0 : Number(item.gst_percent || 18) / 2,
-          igst_rate: isIgst ? Number(item.gst_percent || 18) : 0,
+          cgst_rate: isIgst ? 0 : gstRates[idx] / 2,
+          sgst_rate: isIgst ? 0 : gstRates[idx] / 2,
+          igst_rate: isIgst ? gstRates[idx] : 0,
           cess_rate: 0,
           cessNonAdvol: 0,
           taxable_amount: Number(item.amount)

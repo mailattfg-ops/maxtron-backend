@@ -38,6 +38,47 @@ export function parseGspDateTime(str: string): string | null {
   return `${year}-${month}-${day}T${hourStr}:${minuteStr}:${secondStr}`;
 }
 
+/**
+ * GST rate reported for each line: the rate typed for it. 0% is a real rate.
+ *
+ * Lines saved before the rate was stored per line have none, and an invoice
+ * whose typed tax total disagrees with its line rates cannot be reported both
+ * ways. Both take the rate the invoice was actually charged at (its saved tax
+ * over its taxable value), so what goes to the portal always matches the saved
+ * totals. Nothing is assumed to be 18%.
+ */
+export function lineGstRates(invoice: any, items: any[]): number[] {
+  const taxable = Number(invoice.total_amount || invoice.total_value || 0);
+  const savedTax = Number(invoice.tax_amount || 0);
+  const invoiceRate = taxable > 0 ? Math.round((savedTax / taxable) * 100) : 0;
+  const typed = items.map((i: any) =>
+    i.gst_percent === undefined || i.gst_percent === null || i.gst_percent === '' ? null : Number(i.gst_percent));
+  const taxFromRates = items.reduce((sum: number, i: any, idx: number) =>
+    sum + (Number(i.quantity) || 0) * (Number(i.rate) || 0) * (typed[idx] ?? invoiceRate) / 100, 0);
+  const contradicts = Math.abs(taxFromRates - savedTax) > 1;
+  return typed.map(t => (t === null || contradicts ? invoiceRate : t));
+}
+
+/**
+ * What the portal needs but the records do not hold. A registered e-Invoice or
+ * e-Way Bill cannot be edited afterwards, so nothing is filled in on the
+ * customer's behalf — these used to go out with a default HSN code, PIN code,
+ * address, city and vehicle number.
+ */
+export function missingForPortal(customer: any, items: any[]): string[] {
+  const missing: string[] = [];
+  const addr = customer?.addresses?.[0] || {};
+  if (!addr.street) missing.push('customer address');
+  if (!addr.city) missing.push('customer city');
+  if (!/^\d{6}$/.test(String(addr.zip_code || '').replace(/\D/g, ''))) missing.push('customer PIN code');
+  items.forEach((item: any, idx: number) => {
+    const name = item.finished_products?.product_name;
+    if (!name) missing.push(`product on line ${idx + 1}`);
+    else if (!item.finished_products?.hsn_code) missing.push(`HSN code of ${name}`);
+  });
+  return missing;
+}
+
 
 export interface EInvoiceResponse {
   irn?: string;
@@ -96,6 +137,14 @@ export class EInvoiceService {
         };
       }
 
+      const missing = missingForPortal(customer, items);
+      if (missing.length > 0) {
+        return {
+          status: 'FAILED',
+          error: `E-Invoice not sent. Missing on record: ${missing.join(', ')}. Add it and generate again.`,
+        };
+      }
+
       // Check if Mock Mode
       if (this.isMockMode()) {
         const creds = this.getCredentials();
@@ -142,30 +191,22 @@ export class EInvoiceService {
       const buyerStateCode = customer.gst_no ? customer.gst_no.substring(0, 2) : sellerStateCode;
       const isIgst = buyerStateCode !== sellerStateCode;
 
-      // Sanitize Buyer zip code
-      let buyerPincode = 400001;
-      if (customer.addresses && customer.addresses.length > 0) {
-        const rawZip = customer.addresses[0].zip_code;
-        if (rawZip) {
-          const parsed = parseInt(rawZip.replace(/[^0-9]/g, '')); // Strip any non-digit chars
-          if (!isNaN(parsed) && parsed > 0) {
-            buyerPincode = parsed;
-          }
-        }
-      }
+      // Buyer PIN code as recorded (checked present above), digits only
+      const buyerPincode = parseInt(String(customer.addresses[0].zip_code).replace(/[^0-9]/g, ''));
 
-      // Calculate effective GST rate and distribute GST amount per item
-      const effectiveGstRate = totalAmount > 0 ? Math.round((taxAmount / totalAmount) * 100) : 18;
+      // GST per line at the rate typed for it. The invoice's saved tax is the
+      // total, so the last line takes whatever paise rounding leaves over.
+      const gstRates = lineGstRates(invoice, items);
 
       let calculatedGstSum = 0;
       const formattedItems = items.map((item: any, idx: number) => {
         const itemVal = Number(item.amount);
         let itemGst = 0;
-        
+
         if (idx === items.length - 1) {
           itemGst = Number((taxAmount - calculatedGstSum).toFixed(2));
         } else {
-          itemGst = Number(((itemVal / totalAmount) * taxAmount).toFixed(2));
+          itemGst = Number(((itemVal * gstRates[idx]) / 100).toFixed(2));
           calculatedGstSum += itemGst;
         }
 
@@ -175,9 +216,9 @@ export class EInvoiceService {
 
         return {
           item_serial_number: (idx + 1).toString(),
-          product_description: item.finished_products?.product_name || "Industrial Product",
+          product_description: item.finished_products.product_name,
           is_service: "N",
-          hsn_code: item.finished_products?.hsn_code || "392011", // Default 6 digit HSN code
+          hsn_code: item.finished_products.hsn_code,
           bar_code: "",
           quantity: Number(item.quantity),
           free_quantity: 0,
@@ -188,7 +229,7 @@ export class EInvoiceService {
           discount: 0,
           other_charge: 0,
           assessable_value: itemVal,
-          gst_rate: effectiveGstRate,
+          gst_rate: gstRates[idx],
           igst_amount: igstAmount,
           cgst_amount: cgstAmount,
           sgst_amount: sgstAmount,
@@ -220,8 +261,8 @@ export class EInvoiceService {
           gstin: sellerGstin,
           legal_name: sellerLegalName,
           trade_name: sellerLegalName,
-          address1: "Maxtron Industrial Area",
-          address2: "Industrial Estate",
+          address1: "13-95, 13-96, PIRIVUSALA", // as printed on the invoice
+          address2: "CHANDRANAGAR",
           location: sellerLocation,
           pincode: sellerPincode,
           state_code: sellerStateCode,
@@ -230,9 +271,9 @@ export class EInvoiceService {
           gstin: customer.gst_no,
           legal_name: customer.customer_name,
           trade_name: customer.customer_name,
-          address1: customer.addresses?.[0]?.street || "Customer Address",
+          address1: customer.addresses[0].street,
           address2: "",
-          location: customer.addresses?.[0]?.city || "Mumbai",
+          location: customer.addresses[0].city,
           pincode: buyerPincode,
           place_of_supply: buyerStateCode,
           state_code: buyerStateCode,
@@ -426,6 +467,14 @@ export class EInvoiceService {
         };
       }
 
+      const missing = missingForPortal(customer, items);
+      if (missing.length > 0) {
+        return {
+          status: 'FAILED',
+          error: `Credit Note not sent. Missing on record: ${missing.join(', ')}. Add it and generate again.`,
+        };
+      }
+
       if (this.isMockMode()) {
         console.log(`[EInvoiceService] Simulating Credit Note generation (Mock Mode) for Return ${returnRecord.return_number}`);
         return this.simulateMockCreditNote(returnRecord);
@@ -458,14 +507,7 @@ export class EInvoiceService {
       const buyerStateCode = customer.gst_no.substring(0, 2);
       const isIgst = buyerStateCode !== sellerStateCode;
 
-      let buyerPincode = 400001;
-      if (customer.addresses?.length > 0) {
-        const rawZip = customer.addresses[0].zip_code;
-        if (rawZip) {
-          const parsed = parseInt(rawZip.replace(/[^0-9]/g, ''));
-          if (!isNaN(parsed) && parsed > 0) buyerPincode = parsed;
-        }
-      }
+      const buyerPincode = parseInt(String(customer.addresses[0].zip_code).replace(/[^0-9]/g, ''));
 
       const origInvoiceTax = Number(originalInvoice.tax_amount || 0);
       const origInvoiceTaxable = Number(
@@ -473,9 +515,11 @@ export class EInvoiceService {
         (Number(originalInvoice.net_amount || 0) - origInvoiceTax) ||
         0
       );
-      const effectiveGstRate = origInvoiceTaxable > 0 && origInvoiceTax > 0
+      // The return is credited at the rate the original invoice was charged at —
+      // an invoice billed at 0% is credited at 0%, not 18%.
+      const effectiveGstRate = origInvoiceTaxable > 0
         ? Math.round((origInvoiceTax / origInvoiceTaxable) * 100)
-        : 18;
+        : 0;
 
       let totalReturnAssessableValue = 0;
       let totalReturnCgst = 0;
@@ -497,9 +541,9 @@ export class EInvoiceService {
 
         return {
           item_serial_number: (idx + 1).toString(),
-          product_description: item.finished_products?.product_name || 'Returned Product',
+          product_description: item.finished_products.product_name,
           is_service: 'N',
-          hsn_code: item.finished_products?.hsn_code || '392011',
+          hsn_code: item.finished_products.hsn_code,
           bar_code: '',
           quantity: Number(item.quantity),
           free_quantity: 0,
@@ -569,8 +613,8 @@ export class EInvoiceService {
           gstin: sellerGstin,
           legal_name: sellerLegalName,
           trade_name: sellerLegalName,
-          address1: 'Maxtron Industrial Area',
-          address2: 'Industrial Estate',
+          address1: '13-95, 13-96, PIRIVUSALA', // as printed on the invoice
+          address2: 'CHANDRANAGAR',
           location: sellerLocation,
           pincode: sellerPincode,
           state_code: sellerStateCode,
@@ -579,9 +623,9 @@ export class EInvoiceService {
           gstin: customer.gst_no,
           legal_name: customer.customer_name,
           trade_name: customer.customer_name,
-          address1: customer.addresses?.[0]?.street || 'Customer Address',
+          address1: customer.addresses[0].street,
           address2: '',
-          location: customer.addresses?.[0]?.city || 'Mumbai',
+          location: customer.addresses[0].city,
           pincode: buyerPincode,
           place_of_supply: buyerStateCode,
           state_code: buyerStateCode,
