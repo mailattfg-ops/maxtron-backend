@@ -26,8 +26,8 @@ export class FuelFillingController {
             if (!Array.isArray(records) || records.length === 0) {
                 return res.status(400).json({ success: false, message: 'No records provided for bulk import' });
             }
-            const data = await FuelFillingModel.bulkCreate(records);
-            res.json({ success: true, count: data?.length || 0, data });
+            const { inserted, skipped } = await FuelFillingModel.bulkCreate(records);
+            res.json({ success: true, count: inserted, skipped });
         } catch (error: any) {
             res.status(500).json({ success: false, message: error.message });
         }
