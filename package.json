@@ -21,6 +21,7 @@
     "alter-employee-licenses": "ts-node src/scripts/alter-employee-licenses.ts",
     "alter-opening-stock": "ts-node src/scripts/alter-opening-stock.ts",
     "alter-batch-item-link": "ts-node src/scripts/add-batch-item-link.ts",
+    "alter-quotation-format": "ts-node src/scripts/add_quotation_format_fields.ts",
     "keep-alive": "ts-node src/scripts/keep-alive.ts"
   },
   "keywords": [],

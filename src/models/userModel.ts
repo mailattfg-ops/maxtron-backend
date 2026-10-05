@@ -25,6 +25,8 @@ export interface User {
     branch_id?: string | null;
     branch_ids?: string[] | null;
     is_all_branches?: boolean;
+    date_of_joining?: string | null;
+    relieving_date?: string | null;
     created_at?: string;
 }
 

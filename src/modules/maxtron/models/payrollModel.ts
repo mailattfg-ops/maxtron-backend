@@ -38,6 +38,15 @@ export const PayrollModel = {
         return data[0];
     },
 
+    bulkCreate: async (payrollList: any[]) => {
+        const { data, error } = await supabase
+            .from('employee_payroll')
+            .upsert(payrollList, { onConflict: 'employee_id,month,year' })
+            .select();
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
     update: async (id: string, payrollData: any) => {
         const { data, error } = await supabase
             .from('employee_payroll')

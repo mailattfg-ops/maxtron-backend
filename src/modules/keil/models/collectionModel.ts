@@ -95,7 +95,7 @@ export const CollectionModel = {
             .from('keil_collection_entries')
             .select(`
                 *,
-                header:keil_collection_headers!inner(collection_date, registration_number, driver_name, supervisor_name, start_time, end_time)
+                header:keil_collection_headers!inner(collection_date, registration_number, driver_name, supervisor_name, spare_driver_name, start_time, end_time)
             `)
             .eq('hce_id', hceId)
             .eq('is_visited', true);

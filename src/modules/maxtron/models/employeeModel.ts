@@ -108,6 +108,8 @@ export const EmployeeModel = {
 
         if (dataToInsert.username === '') dataToInsert.username = null;
         if (dataToInsert.date_of_birth === '') dataToInsert.date_of_birth = null;
+        if (dataToInsert.date_of_joining === '') dataToInsert.date_of_joining = null;
+        if (dataToInsert.relieving_date === '') dataToInsert.relieving_date = null;
 
         if (dataToInsert.password && dataToInsert.password.trim() !== '') {
             const salt = await bcrypt.genSalt(10);
@@ -218,6 +220,8 @@ export const EmployeeModel = {
 
         if (dataToUpdate.username === '') dataToUpdate.username = null;
         if (dataToUpdate.date_of_birth === '') dataToUpdate.date_of_birth = null;
+        if (dataToUpdate.date_of_joining === '') dataToUpdate.date_of_joining = null;
+        if (dataToUpdate.relieving_date === '') dataToUpdate.relieving_date = null;
 
         if (dataToUpdate.password && typeof dataToUpdate.password === 'string' && dataToUpdate.password.trim() !== '') {
             const salt = await bcrypt.genSalt(10);

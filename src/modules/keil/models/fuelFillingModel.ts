@@ -12,9 +12,9 @@ export class FuelFillingModel {
             .order('log_date', { ascending: false });
 
         if (filters.company_id) query = query.eq('company_id', filters.company_id);
-        if (filters.vehicle_id && filters.vehicle_id !== 'all') query = query.eq('vehicle_id', filters.vehicle_id);
-        if (filters.from) query = query.gte('log_date', filters.from);
-        if (filters.to) query = query.lte('log_date', filters.to);
+        if (filters.vehicle_id && filters.vehicle_id !== 'all' && filters.vehicle_id !== '') query = query.eq('vehicle_id', filters.vehicle_id);
+        if (filters.from && typeof filters.from === 'string' && filters.from.trim() !== '') query = query.gte('log_date', filters.from.trim());
+        if (filters.to && typeof filters.to === 'string' && filters.to.trim() !== '') query = query.lte('log_date', filters.to.trim());
 
         const { data, error } = await query;
         if (error) throw error;
@@ -33,7 +33,8 @@ export class FuelFillingModel {
             efficiency,
             difference,
             remarks,
-            pump_details
+            pump_details,
+            odometer_reading
         } = data;
 
         const clean: any = {};
@@ -48,6 +49,7 @@ export class FuelFillingModel {
         if (difference !== undefined) clean.difference = difference === '' ? null : difference;
         if (remarks !== undefined) clean.remarks = remarks;
         if (pump_details !== undefined) clean.pump_details = pump_details;
+        if (odometer_reading !== undefined) clean.odometer_reading = (odometer_reading === '' || odometer_reading === null) ? null : odometer_reading;
         return clean;
     }
 
@@ -58,6 +60,17 @@ export class FuelFillingModel {
             .insert([cleanData])
             .select()
             .single();
+
+        if (error) throw error;
+        return result;
+    }
+
+    static async bulkCreate(records: any[]) {
+        const cleanRecords = records.map(r => FuelFillingModel.sanitize(r));
+        const { data: result, error } = await supabase
+            .from('keil_fuel_filling')
+            .insert(cleanRecords)
+            .select();
 
         if (error) throw error;
         return result;

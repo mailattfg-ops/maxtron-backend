@@ -28,6 +28,7 @@ router.get('/intelligence', FleetController.getFleetIntelligence);
 // Fuel Filling Records
 router.get('/fuel-fillings', FuelFillingController.getAll);
 router.post('/fuel-fillings', FuelFillingController.create);
+router.post('/fuel-fillings/bulk', FuelFillingController.bulkCreate);
 router.put('/fuel-fillings/:id', FuelFillingController.update);
 router.delete('/fuel-fillings/:id', FuelFillingController.delete);
 
