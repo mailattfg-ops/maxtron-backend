@@ -115,12 +115,17 @@ export const ProductionModel = {
         const sanitizedData = { ...batchFields };
         const uuidFields = ['product_id', 'operator_id', 'supervisor_id', 'company_id', 'consumption_id'];
 
+        const wastage = Math.max(0, Number(sanitizedData.wastage_qty) || 0);
+        sanitizedData.wastage_qty = wastage;
+
         if (Array.isArray(items) && items.length > 0) {
             sanitizedData.product_id = items[0].product_id || sanitizedData.product_id;
             const itemsOutputTotal = items.reduce((sum: number, it: any) => sum + (Number(it.output_qty) || 0), 0);
             if (itemsOutputTotal > 0) {
-                sanitizedData.extrusion_output_qty = itemsOutputTotal;
+                sanitizedData.extrusion_output_qty = Math.max(0, Number((itemsOutputTotal - wastage).toFixed(2)));
             }
+        } else if (sanitizedData.extrusion_output_qty !== undefined) {
+            sanitizedData.extrusion_output_qty = Math.max(0, Number(((Number(sanitizedData.extrusion_output_qty) || 0) - wastage).toFixed(2)));
         }
 
         uuidFields.forEach(field => {
@@ -188,12 +193,17 @@ export const ProductionModel = {
         const sanitizedData = { ...batchFields };
         const uuidFields = ['product_id', 'operator_id', 'supervisor_id', 'company_id', 'consumption_id'];
 
+        const wastage = Math.max(0, Number(sanitizedData.wastage_qty) || 0);
+        sanitizedData.wastage_qty = wastage;
+
         if (Array.isArray(items) && items.length > 0) {
             sanitizedData.product_id = items[0].product_id || sanitizedData.product_id;
             const itemsOutputTotal = items.reduce((sum: number, it: any) => sum + (Number(it.output_qty) || 0), 0);
             if (itemsOutputTotal > 0) {
-                sanitizedData.extrusion_output_qty = itemsOutputTotal;
+                sanitizedData.extrusion_output_qty = Math.max(0, Number((itemsOutputTotal - wastage).toFixed(2)));
             }
+        } else if (sanitizedData.extrusion_output_qty !== undefined) {
+            sanitizedData.extrusion_output_qty = Math.max(0, Number(((Number(sanitizedData.extrusion_output_qty) || 0) - wastage).toFixed(2)));
         }
 
         uuidFields.forEach(field => {

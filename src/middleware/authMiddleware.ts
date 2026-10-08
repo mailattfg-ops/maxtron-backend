@@ -26,7 +26,10 @@ export const protect = (req: AuthRequest, res: Response, next: NextFunction) => 
 };
 
 export const adminOnly = (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (req.user && (req.user.role_name === 'admin' || req.user.email === 'admin@maxtron.com')) {
+    const roleName = (req.user?.role_name || '').toLowerCase();
+    const email = (req.user?.email || '').toLowerCase();
+    const isAdmin = roleName === 'admin' || email === 'admin@maxtron.com' || email === 'admin@keil.com' || email === 'admin';
+    if (req.user && isAdmin) {
         next();
     } else {
         return res.status(403).json({ success: false, message: 'Forbidden: Admin access only' });

@@ -44,6 +44,13 @@ export class FuelFillingController {
 
     static async delete(req: Request, res: Response) {
         try {
+            const user = (req as any).user;
+            const roleName = (user?.role_name || '').toLowerCase();
+            const email = (user?.email || '').toLowerCase();
+            const isAdmin = roleName === 'admin' || email === 'admin@maxtron.com' || email === 'admin@keil.com' || email === 'admin';
+            if (!isAdmin) {
+                return res.status(403).json({ success: false, message: 'Forbidden: Only administrators can delete fuel filling records' });
+            }
             await FuelFillingModel.delete(req.params.id);
             res.json({ success: true, message: 'Fuel filling record deleted' });
         } catch (error: any) {
