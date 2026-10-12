@@ -28,6 +28,7 @@ import { getCategories, createCategory, updateCategory, deleteCategory } from '.
 import { getDashboardSummary } from '../controllers/dashboardController';
 import announcementRoutes from './announcementRoutes';
 import marketingOfferRoutes from './marketingOfferRoutes';
+import marketingOutcomeRoutes from './marketingOutcomeRoutes';
 import tradingGoodsRoutes from './tradingGoodsRoutes';
 import { protect } from '../../../middleware/authMiddleware';
 
@@ -70,6 +71,7 @@ router.get('/departments', protect, getDepartments);
 router.use('/rm-type-codes', rmTypeCodeRoutes);
 router.use('/announcements', announcementRoutes);
 router.use('/marketing-offers', marketingOfferRoutes);
+router.use('/marketing-outcomes', marketingOutcomeRoutes);
 
 // Dashboard Summary
 router.get('/dashboard-summary', protect, getDashboardSummary);
