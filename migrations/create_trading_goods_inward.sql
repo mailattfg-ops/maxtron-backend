@@ -27,3 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_trading_goods_date ON trading_goods_inward(inward
 INSERT INTO permissions (module_name, sub_module, permission_key, description)
 VALUES ('Inventory', 'Trading Goods', 'inv_trading_view', 'Manage trading finished goods stock and inward')
 ON CONFLICT DO NOTHING;
+
+-- Disable RLS to allow backend operations
+ALTER TABLE trading_goods_inward DISABLE ROW LEVEL SECURITY;
+

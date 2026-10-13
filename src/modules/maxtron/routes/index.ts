@@ -43,6 +43,8 @@ router.use((req, res, next) => {
 });
 
 // Modular routing for Maxtron Operations
+router.use('/inventory/trading-goods', tradingGoodsRoutes);
+router.use('/trading-goods', tradingGoodsRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/companies', companyRoutes);
@@ -61,8 +63,7 @@ router.use('/sales', salesRoutes);
 router.use('/purchase-entries', purchaseEntryRoutes);
 router.use('/consumptions', consumptionRoutes);
 router.use('/purchase-returns', purchaseReturnRoutes);
-router.use('/inventory/trading-goods', tradingGoodsRoutes);
-router.use('/trading-goods', tradingGoodsRoutes);
+
 router.use('/production', productionRoutes);
 router.use('/products', productRoutes);
 router.use('/finance', financeRoutes);
