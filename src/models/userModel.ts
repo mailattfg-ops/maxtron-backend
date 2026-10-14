@@ -5,6 +5,7 @@ export interface User {
     type: string; // UUID from user_types
     employee_code: string;
     name: string;
+    designation?: string | null;
     username: string; // email used for login
     password?: string; // stored hashed passwords preferably
     address?: string | null;

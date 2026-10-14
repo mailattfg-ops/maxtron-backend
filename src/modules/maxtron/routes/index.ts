@@ -28,6 +28,7 @@ import { getCategories, createCategory, updateCategory, deleteCategory } from '.
 import { getDashboardSummary } from '../controllers/dashboardController';
 import announcementRoutes from './announcementRoutes';
 import marketingOfferRoutes from './marketingOfferRoutes';
+import marketingOutcomeRoutes from './marketingOutcomeRoutes';
 import tradingGoodsRoutes from './tradingGoodsRoutes';
 import { protect } from '../../../middleware/authMiddleware';
 
@@ -42,6 +43,8 @@ router.use((req, res, next) => {
 });
 
 // Modular routing for Maxtron Operations
+router.use('/inventory/trading-goods', tradingGoodsRoutes);
+router.use('/trading-goods', tradingGoodsRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/companies', companyRoutes);
@@ -60,8 +63,7 @@ router.use('/sales', salesRoutes);
 router.use('/purchase-entries', purchaseEntryRoutes);
 router.use('/consumptions', consumptionRoutes);
 router.use('/purchase-returns', purchaseReturnRoutes);
-router.use('/inventory/trading-goods', tradingGoodsRoutes);
-router.use('/trading-goods', tradingGoodsRoutes);
+
 router.use('/production', productionRoutes);
 router.use('/products', productRoutes);
 router.use('/finance', financeRoutes);
@@ -70,6 +72,7 @@ router.get('/departments', protect, getDepartments);
 router.use('/rm-type-codes', rmTypeCodeRoutes);
 router.use('/announcements', announcementRoutes);
 router.use('/marketing-offers', marketingOfferRoutes);
+router.use('/marketing-outcomes', marketingOutcomeRoutes);
 
 // Dashboard Summary
 router.get('/dashboard-summary', protect, getDashboardSummary);

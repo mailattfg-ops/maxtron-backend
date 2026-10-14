@@ -4,8 +4,8 @@ import { FinishedProductModel } from '../models/finishedProductModel';
 export const productController = {
     getAll: async (req: Request, res: Response) => {
         try {
-            const { company_id } = req.query;
-            const data = await FinishedProductModel.getAll(company_id as string);
+            const { company_id, category } = req.query;
+            const data = await FinishedProductModel.getAll(company_id as string, category as string);
             res.json({ success: true, data });
         } catch (error: any) {
             res.status(500).json({ success: false, message: error.message });

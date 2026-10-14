@@ -3,9 +3,9 @@ import { z } from 'zod';
 export const customerSchema = z.object({
     customer_name: z.string().min(2, "Customer name is required and should be at least 2 characters"),
     customer_code: z.string().min(2, "Customer code is required"),
-    gst_no: z.string().optional().nullable(),
+    gst_no: z.string().optional().nullable().or(z.literal('')),
     mobile_no: z.string()
-        .regex(/^[0-9]{10,12}$/, "Mobile number must be between 10 to 12 digits")
+        .regex(/^[0-9+\-\s]{7,15}$/, "Mobile number must be between 7 to 15 digits")
         .optional()
         .nullable()
         .or(z.literal('')),

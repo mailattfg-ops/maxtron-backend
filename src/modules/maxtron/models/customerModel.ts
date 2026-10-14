@@ -44,7 +44,15 @@ export const CustomerModel = {
                 customer_id: newCustomer.id
             }));
             const { error: addrError } = await supabase.from('addresses').insert(enrichedAddresses);
-            if (addrError) throw new Error(addrError.message);
+            if (addrError) {
+                // All or nothing: without this the customer stayed saved with no
+                // address while the screen reported a failure.
+                // ponytail: two statements, not one transaction; a crash between
+                // them still leaves the customer. Move both into a database
+                // function if that ever happens.
+                await supabase.from('customers').delete().eq('id', newCustomer.id);
+                throw new Error(addrError.message);
+            }
         }
 
         return CustomerModel.getById(newCustomer.id);

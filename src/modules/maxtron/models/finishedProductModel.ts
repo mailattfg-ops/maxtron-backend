@@ -13,15 +13,19 @@ export interface FinishedProduct {
     stock_threshold?: number;
     hsn_code?: string;
     opening_stock?: number;
+    category?: string;
     created_at?: string;
     updated_at?: string;
 }
 
 export const FinishedProductModel = {
-    getAll: async (companyId?: string): Promise<FinishedProduct[]> => {
+    getAll: async (companyId?: string, category?: string): Promise<FinishedProduct[]> => {
         let query = supabase.from('finished_products').select('*');
         if (companyId) {
             query = query.eq('company_id', companyId);
+        }
+        if (category) {
+            query = query.eq('category', category);
         }
         const { data, error } = await query.order('created_at', { ascending: false });
         if (error) throw new Error(error.message);
