@@ -12,6 +12,15 @@ export const getCustomers = async (req: Request, res: Response): Promise<void> =
     }
 };
 
+export const getNextCustomerCode = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const code = await CustomerModel.getNextCode(req.query.company_id as string);
+        res.status(200).json({ success: true, data: code });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: 'Failed to work out the next customer code', error: error.message });
+    }
+};
+
 export const getCustomer = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
