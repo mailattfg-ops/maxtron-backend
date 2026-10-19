@@ -14,6 +14,23 @@ export const CustomerModel = {
         return data || [];
     },
 
+    /**
+     * The next free customer code for a company: one above the highest
+     * CUST-number it uses, written CUST-032. Counting customers does not work,
+     * as codes have gaps and two widths (CUST-000010, CUST-031).
+     */
+    getNextCode: async (companyId?: string) => {
+        let query = supabase.from('customers').select('customer_code');
+        if (companyId) query = query.eq('company_id', companyId);
+        const { data, error } = await query;
+        if (error) throw new Error(error.message);
+        const highest = (data || []).reduce((max: number, c: any) => {
+            const m = String(c.customer_code || '').match(/^CUST-0*(\d+)$/i);
+            return m ? Math.max(max, Number(m[1])) : max;
+        }, 0);
+        return `CUST-${String(highest + 1).padStart(3, '0')}`;
+    },
+
     getById: async (id: string) => {
         const { data, error } = await supabase
             .from('customers')
