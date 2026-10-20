@@ -15,7 +15,37 @@ export const AssignmentModel = {
         return data || [];
     },
 
+    /**
+     * Link a facility to a route. A facility has one link per route, holding
+     * all its collection days; linking it again adds the new days to that
+     * link (and takes the new frequency and remarks) instead of failing as a
+     * duplicate. Its place in the route order is kept. `merged` says which.
+     */
     assignHce: async (assignmentData: any) => {
+        const { data: existing, error: findError } = await supabase
+            .from('keil_route_assignments')
+            .select('id, collection_days, remarks')
+            .eq('route_id', assignmentData.route_id)
+            .eq('hce_id', assignmentData.hce_id)
+            .maybeSingle();
+        if (findError) throw new Error(findError.message);
+
+        if (existing) {
+            const days = [...new Set([...(existing.collection_days || []), ...(assignmentData.collection_days || [])])];
+            const { data, error } = await supabase
+                .from('keil_route_assignments')
+                .update({
+                    collection_days: days,
+                    ...(assignmentData.collection_type ? { collection_type: assignmentData.collection_type } : {}),
+                    remarks: assignmentData.remarks || existing.remarks,
+                })
+                .eq('id', existing.id)
+                .select()
+                .single();
+            if (error) throw new Error(error.message);
+            return { ...data, merged: true };
+        }
+
         const { data, error } = await supabase
             .from('keil_route_assignments')
             .insert([assignmentData])
