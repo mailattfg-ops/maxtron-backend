@@ -1,0 +1,18 @@
+name: Supabase Keep Alive (KEIL)
+
+on:
+  schedule:
+    # Runs at 01:00 UTC every 3 days
+    # (Supabase free tier pauses projects after 1 week of inactivity)
+    - cron: '0 1 */3 * *'
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping KEIL Supabase Database
+        run: |
+          curl -i -X GET "${{ secrets.KEIL_SUPABASE_URL }}/rest/v1/companies?select=id&limit=1" \
+          -H "apikey: ${{ secrets.KEIL_SUPABASE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.KEIL_SUPABASE_KEY }}"

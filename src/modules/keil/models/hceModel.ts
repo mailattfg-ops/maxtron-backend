@@ -1,15 +1,26 @@
 import { supabase } from '../../../config/supabase';
 
+const PAGE = 1000;
+
 export const HCEModel = {
+    /** Every HCE, read a page at a time: one request returns at most 1000 rows, and KEIL has more. */
     getAll: async (companyId?: string, branchIds?: string[], isAllBranches?: boolean) => {
-        let query = supabase.from('keil_hces').select('*, keil_branches(branch_name)');
-        if (companyId) query = query.eq('company_id', companyId);
-        if (!isAllBranches && branchIds && branchIds.length > 0) {
-            query = query.in('branch_id', branchIds);
+        const data: any[] = [];
+        for (let from = 0; ; from += PAGE) {
+            let query = supabase.from('keil_hces').select('*, keil_branches(branch_name)');
+            if (companyId) query = query.eq('company_id', companyId);
+            if (!isAllBranches && branchIds && branchIds.length > 0) {
+                query = query.in('branch_id', branchIds);
+            }
+            const { data: page, error } = await query
+                .order('created_at', { ascending: false })
+                .order('id') // a fixed order, so pages neither repeat nor skip rows
+                .range(from, from + PAGE - 1);
+            if (error) throw new Error(error.message);
+            data.push(...(page || []));
+            if (!page || page.length < PAGE) break;
         }
-        const { data, error } = await query.order('created_at', { ascending: false });
-        if (error) throw new Error(error.message);
-        return (data || []).map(h => ({
+        return data.map(h => ({
             ...h,
             branch_name: h.keil_branches?.branch_name
         }));
