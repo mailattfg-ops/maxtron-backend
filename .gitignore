@@ -119,3 +119,6 @@ dist
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Vercel CLI link (project/team IDs), never committed
+.vercel
